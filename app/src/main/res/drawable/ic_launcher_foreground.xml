@@ -1,0 +1,111 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Ambient Glow / Soft Base Disc -->
+    <path
+        android:fillColor="#151E38"
+        android:pathData="M54,22 A32,32 0 1,0 54,86 A32,32 0 1,0 54,22 Z" />
+
+    <!-- Modern Wallet / Vault Base Shape -->
+    <path
+        android:pathData="M30,36 C30,32.686 32.686,30 36,30 L72,30 C75.314,30 78,32.686 78,36 L78,72 C78,75.314 75.314,78 72,78 L36,78 C32.686,78 30,75.314 30,72 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="30"
+                android:startY="30"
+                android:endX="78"
+                android:endY="78">
+                <item android:color="#1E3A8A" android:offset="0.0" />
+                <item android:color="#0F172A" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Upward Growth Bars & Accent Lines -->
+    <!-- Left Bar (Teal) -->
+    <path
+        android:pathData="M36,68 L36,54 C36,52.895 36.895,52 38,52 L42,52 C43.105,52 44,52.895 44,54 L44,68 C44,69.105 43.105,70 42,70 L38,70 C36.895,70 36,69.105 36,68 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="40"
+                android:startY="52"
+                android:endX="40"
+                android:endY="70">
+                <item android:color="#2DD4BF" android:offset="0.0" />
+                <item android:color="#0D9488" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Center Bar (Electric Blue) -->
+    <path
+        android:pathData="M46,68 L46,46 C46,44.895 46.895,44 48,44 L52,44 C53.105,44 54,44.895 54,46 L54,68 C54,69.105 53.105,70 52,70 L48,70 C46.895,70 46,69.105 46,68 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="50"
+                android:startY="44"
+                android:endX="50"
+                android:endY="70">
+                <item android:color="#38BDF8" android:offset="0.0" />
+                <item android:color="#0284C7" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Right Bar (Vibrant Emerald) -->
+    <path
+        android:pathData="M56,68 L56,38 C56,36.895 56.895,36 58,36 L62,36 C63.105,36 64,36.895 64,38 L64,68 C64,69.105 63.105,70 62,70 L58,70 C56.895,70 56,69.105 56,68 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="60"
+                android:startY="36"
+                android:endX="60"
+                android:endY="70">
+                <item android:color="#4ADE80" android:offset="0.0" />
+                <item android:color="#16A34A" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Dynamic Growth Arrow -->
+    <path
+        android:pathData="M66,35 L74,35 C74.552,35 75,35.448 75,36 L75,44 C75,44.552 74.33,44.83 73.94,44.44 L71.5,42.0 L62.7,50.8 C62.31,51.19 61.68,51.19 61.29,50.8 L56.7,46.2 L41.7,61.2 C41.31,61.59 40.68,61.59 40.29,61.2 L38.3,59.2 C37.91,58.81 37.91,58.18 38.3,57.79 L55.3,40.79 C55.69,40.4 56.32,40.4 56.71,40.79 L61.3,45.38 L68.5,38.18 L66.06,35.74 C65.67,35.35 65.95,34.68 66.5,34.68 Z"
+        android:fillColor="#10B981" />
+
+    <!-- Radiant Gold Coin Badge -->
+    <path
+        android:pathData="M68,60 A10,10 0 1,0 68,80 A10,10 0 1,0 68,60 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="58"
+                android:startY="60"
+                android:endX="78"
+                android:endY="80">
+                <item android:color="#FDE047" android:offset="0.0" />
+                <item android:color="#F59E0B" android:offset="0.5" />
+                <item android:color="#D97706" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Inner Coin Rim -->
+    <path
+        android:pathData="M68,62.5 A7.5,7.5 0 1,0 68,77.5 A7.5,7.5 0 1,0 68,62.5 Z"
+        android:strokeWidth="0.8"
+        android:strokeColor="#FEF08A" />
+
+    <!-- Coin Emblem Symbol (Stylized Currency / Diamond Sparkle) -->
+    <path
+        android:pathData="M68,65 L69.5,68.5 L73,70 L69.5,71.5 L68,75 L66.5,71.5 L63,70 L66.5,68.5 Z"
+        android:fillColor="#FFFFFF" />
+
+</vector>
