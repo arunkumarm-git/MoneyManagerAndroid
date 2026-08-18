@@ -128,5 +128,34 @@ class SmsParserTest {
         assertEquals("4321", bill.cardLast4)
         assertEquals("2026-10-02", bill.dueDate)
     }
+
+    @Test
+    fun testIobDebitSms() {
+        val body = "Your a/c XXXXX12 debited for payee Muthukumar A for Rs. 1000.00 on 2026-08-18, ref 110034272801.If not you, report to your bank immediately-IOB."
+        val result = SmsParser.parse("BV-IOBCHN-S", body)
+
+        assertTrue(result.isFinancial)
+        assertEquals(1000.0, result.amount, 0.001)
+        assertEquals("expense", result.type)
+        assertEquals("Other", result.suggestedCategory)
+        assertEquals("Muthukumar A", result.merchantOrNote)
+        assertEquals("XX12", result.accountReference)
+    }
+
+    @Test
+    fun testVariousAmountFormats() {
+        val sms1 = SmsParser.parse("AD-HDFCBK", "Rs. 1000.00 debited from A/c XX1234 to Store")
+        assertEquals(1000.0, sms1.amount, 0.001)
+
+        val sms2 = SmsParser.parse("AD-HDFCBK", "INR 10000.00 debited from A/c XX1234 to Store")
+        assertEquals(10000.0, sms2.amount, 0.001)
+
+        val sms3 = SmsParser.parse("AD-HDFCBK", "Rs 1,00,000.00 credited to A/c XX1234 by Salary")
+        assertEquals(100000.0, sms3.amount, 0.001)
+
+        val sms4 = SmsParser.parse("AD-HDFCBK", "₹ 500 debited from A/c XX1234 to Store")
+        assertEquals(500.0, sms4.amount, 0.001)
+    }
 }
+
 

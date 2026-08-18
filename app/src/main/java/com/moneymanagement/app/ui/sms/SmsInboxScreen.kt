@@ -301,11 +301,22 @@ fun SmsInboxScreen(
     }
 
     editingSms?.let { sms ->
-        val matchedAccount = accounts.find { it.id == sms.suggestedAccountId } ?: accounts.firstOrNull()
+        val matchedAccount = accounts.find { it.id == sms.suggestedAccountId }
+            ?: accounts.find { acc ->
+                sms.accountReference != null && acc.name.contains(sms.accountReference.replace("XX", ""), ignoreCase = true)
+            }
+            ?: accounts.find { acc ->
+                acc.type.equals("bank", ignoreCase = true) || acc.name.contains("bank", ignoreCase = true)
+            }
+            ?: accounts.firstOrNull()
+
         val matchedCategory = categories.find {
             it.name.equals(sms.suggestedCategory, ignoreCase = true) &&
             it.type.equals(sms.type, ignoreCase = true)
-        }
+        } ?: categories.find {
+            (it.name.equals("Other", ignoreCase = true) || it.name.equals("Others", ignoreCase = true) || it.name.equals("Other Income", ignoreCase = true)) &&
+            it.type.equals(sms.type, ignoreCase = true)
+        } ?: categories.firstOrNull { it.type == sms.type }
 
         val initialRow = com.moneymanagement.app.data.TransactionRow(
             txn = com.moneymanagement.app.data.Transaction(
@@ -360,7 +371,11 @@ private fun SmsDraftCard(
 
     var selectedAccountId by remember(sms.id, accounts) {
         val matched = accounts.find { acc ->
+            sms.suggestedAccountId != null && acc.id == sms.suggestedAccountId
+        } ?: accounts.find { acc ->
             sms.accountReference != null && acc.name.contains(sms.accountReference.replace("XX", ""), ignoreCase = true)
+        } ?: accounts.find { acc ->
+            acc.type.equals("bank", ignoreCase = true) || acc.name.contains("bank", ignoreCase = true)
         } ?: accounts.firstOrNull()
         mutableStateOf(matched?.id)
     }
@@ -369,7 +384,10 @@ private fun SmsDraftCard(
         val matched = categories.find { cat ->
             cat.name.equals(sms.suggestedCategory, ignoreCase = true) &&
             cat.type.equals(sms.type, ignoreCase = true)
-        }
+        } ?: categories.find { cat ->
+            (cat.name.equals("Other", ignoreCase = true) || cat.name.equals("Others", ignoreCase = true) || cat.name.equals("Other Income", ignoreCase = true)) &&
+            cat.type.equals(sms.type, ignoreCase = true)
+        } ?: categories.firstOrNull { it.type == sms.type }
         mutableStateOf(matched?.id)
     }
 

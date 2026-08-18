@@ -66,12 +66,17 @@ object SmsSyncManager {
                         if (!isDuplicate) {
                             val matchedAccount = accounts.find { acc ->
                                 parsed.accountReference != null && acc.name.contains(parsed.accountReference.replace("XX", ""), ignoreCase = true)
+                            } ?: accounts.find { acc ->
+                                acc.type.equals("bank", ignoreCase = true) || acc.name.contains("bank", ignoreCase = true)
                             } ?: accounts.firstOrNull()
 
                             val matchedCategory = categories.find { cat ->
                                 cat.name.equals(parsed.suggestedCategory, ignoreCase = true) &&
                                 cat.type.equals(parsed.type, ignoreCase = true)
-                            }
+                            } ?: categories.find { cat ->
+                                (cat.name.equals("Other", ignoreCase = true) || cat.name.equals("Others", ignoreCase = true) || cat.name.equals("Other Income", ignoreCase = true)) &&
+                                cat.type.equals(parsed.type, ignoreCase = true)
+                            } ?: categories.firstOrNull { it.type == parsed.type }
 
                             val draft = SmsInbox(
                                 sender = address,

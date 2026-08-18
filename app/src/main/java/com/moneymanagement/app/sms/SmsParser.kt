@@ -30,7 +30,6 @@ data class ParsedCreditCardBill(
     val smsHash: String = "",
 )
 
-
 object SmsParser {
 
     // Non-financial / OTP patterns to strictly discard
@@ -43,38 +42,51 @@ object SmsParser {
 
     // Expense indicator words
     private val EXPENSE_PATTERNS = listOf(
-        Pattern.compile("(?i)\\b(debited\\s*(?:by|with|for)?|spent|paid\\s*(?:to)?|sent\\s*(?:to)?|transferred\\s*(?:to)?|withdrawn|purchase(?:d)?\\s*at|charged|pos\\s*txn|txn\\s*of)\\b"),
+        Pattern.compile("(?i)\\b(debited\\s*(?:by|with|for|from)?|spent|paid\\s*(?:to)?|sent\\s*(?:to)?|transferred\\s*to|transfer\\s*to|withdrawn|withdrawal|purchase(?:d)?\\s*at|charged|pos\\s*txn|txn\\s*of)\\b"),
     )
 
     // Income indicator words
     private val INCOME_PATTERNS = listOf(
-        Pattern.compile("(?i)\\b(credited\\s*(?:by|with|to)?|received\\s*(?:from)?|deposited\\s*(?:in|to)?|refund(?:ed)?|cashback\\s*(?:of|received)?|salary\\s*(?:credited)?)\\b"),
+        Pattern.compile("(?i)\\b(credited\\s*(?:by|with|to|from)?|received\\s*(?:from)?|deposited\\s*(?:in|to)?|refund(?:ed)?|cashback\\s*(?:of|received)?|salary\\s*(?:credited)?)\\b"),
     )
 
     // Amount extraction regexes
     private val AMOUNT_PATTERNS = listOf(
-        // e.g., "Rs. 1,499.00", "INR 250.50", "₹ 500", "$ 45.00", "USD 120", "EUR 30"
-        Pattern.compile("(?i)(?:rs\\.?|inr|₹|\\$|usd|eur|€)\\s*([0-9]{1,3}(?:,[0-9]{2,3})*(?:\\.[0-9]{1,2})?|[0-9]+(?:\\.[0-9]{1,2})?)"),
+        // e.g., "Rs. 1,499.00", "Rs. 1000.00", "INR 250.50", "₹ 500", "$ 45.00", "USD 120", "EUR 30"
+        Pattern.compile("(?i)(?:rs\\.?|inr|₹|\\$|usd|eur|€)\\s*([0-9]+(?:,[0-9]+)*(?:\\.[0-9]{1,2})?)"),
         // e.g., "1,499.00 INR", "500.00 Rs"
-        Pattern.compile("(?i)([0-9]{1,3}(?:,[0-9]{2,3})*(?:\\.[0-9]{1,2})?|[0-9]+(?:\\.[0-9]{1,2})?)\\s*(?:rs\\.?|inr|₹|\\$|usd|eur|€)"),
-        // e.g. "debited with 500.00"
-        Pattern.compile("(?i)(?:debited\\s*(?:by|with)?|spent|credited\\s*(?:by|with)?)\\s*([0-9]{1,3}(?:,[0-9]{2,3})*(?:\\.[0-9]{1,2})?|[0-9]+(?:\\.[0-9]{1,2})?)"),
+        Pattern.compile("(?i)([0-9]+(?:,[0-9]+)*(?:\\.[0-9]{1,2})?)\\s*(?:rs\\.?|inr|₹|\\$|usd|eur|€)"),
+        // e.g. "debited with 500.00", "debited by 1000", "spent 420.50"
+        Pattern.compile("(?i)(?:debited\\s*(?:by|with|for)?|spent|credited\\s*(?:by|with|for)?)\\s*(?:rs\\.?|inr|₹|\\$)?\\s*([0-9]+(?:,[0-9]+)*(?:\\.[0-9]{1,2})?)"),
     )
 
     // Account/Card reference extraction
     private val ACCOUNT_PATTERNS = listOf(
-        Pattern.compile("(?i)(?:a\\/c|acct|account|card|acc)\\s*(?:no\\.?)?\\s*[*xX]*([0-9]{3,4})\\b"),
-        Pattern.compile("(?i)(?:ending\\s*(?:with)?|ending\\s*in)\\s*[*xX]*([0-9]{3,4})\\b"),
-        Pattern.compile("(?i)[*xX]+([0-9]{4})\\b"),
+        Pattern.compile("(?i)(?:a\\/c|acct|account|card|acc)\\s*(?:no\\.?)?\\s*[*xX]*([0-9]{2,4})\\b"),
+        Pattern.compile("(?i)(?:ending\\s*(?:with)?|ending\\s*in)\\s*[*xX]*([0-9]{2,4})\\b"),
+        Pattern.compile("(?i)[*xX]+([0-9]{2,4})\\b"),
     )
 
-    // Merchant / Payee extraction
+    // Merchant / Payee extraction (ordered by specificity)
     private val MERCHANT_PATTERNS = listOf(
-        // "at STARBUCKS on", "to JOHN DOE on", "paid to SWIGGY ref"
-        Pattern.compile("(?i)(?:paid\\s*to|sent\\s*to|transferred\\s*to|spent\\s*at|at|to)\\s+([A-Za-z0-9\\s\\.\\-_&@]{2,30}?)(?=\\s+on|\\s+ref|\\s+via|\\s+using|\\s+upi|\\s+avail|\\s+bal|\\s+a\\/c|\\.|\\,|$|\\n)"),
+        // "debited for payee Muthukumar A for Rs", "for payee John Doe on"
+        Pattern.compile("(?i)(?:for\\s+payee|debited\\s+for\\s+payee|paid\\s+to\\s+payee|payee|beneficiary|to\\s+beneficiary)\\s+([A-Za-z0-9\\s\\.\\-_&@]{2,35}?)(?=\\s+for|\\s+on|\\s+ref|\\s+via|\\s+using|\\s+upi|\\s+avail|\\s+bal|\\s+a\\/c|\\.|\\,|$|\\n)"),
+        // "paid to SWIGGY on", "sent to John on", "spent on/at UBER"
+        Pattern.compile("(?i)(?:paid\\s*to|sent\\s*to|transferred\\s*to|transfer\\s*to|spent\\s*(?:at|on)|purchase(?:d)?\\s*at|credited\\s*(?:by|from)|received\\s*from)\\s+([A-Za-z0-9\\s\\.\\-_&@]{2,35}?)(?=\\s+for|\\s+on|\\s+ref|\\s+via|\\s+using|\\s+upi|\\s+avail|\\s+bal|\\s+a\\/c|\\.|\\,|$|\\n)"),
+        // "towards SWIGGY ref", "info/SALARY"
+        Pattern.compile("(?i)(?:towards\\s+|info\\/)([A-Za-z0-9\\s\\.\\-_&@]{2,35}?)(?=\\s+for|\\s+on|\\s+ref|\\s+via|\\s+using|\\s+upi|\\s+avail|\\s+bal|\\s+a\\/c|\\.|\\,|$|\\n)"),
         // UPI payee extraction like "UPI/123456/MERCHANT NAME" or "VPA user@upi"
-        Pattern.compile("(?i)(?:upi\\/[0-9]+\\/|vpa\\s+)([A-Za-z0-9\\.\\-_@]+)"),
-        Pattern.compile("(?i)(?:info\\/|towards\\s+)([A-Za-z0-9\\s\\.\\-_]{2,25})"),
+        Pattern.compile("(?i)(?:upi\\/[0-9]+\\/|vpa\\s+|upi\\/|vpa\\/)([A-Za-z0-9\\.\\-_@]+)"),
+        // Broader "at STORE" / "to RECIPIENT"
+        Pattern.compile("(?i)(?:\\bat|\\bto)\\s+([A-Za-z0-9\\s\\.\\-_&@]{2,30}?)(?=\\s+for|\\s+on|\\s+ref|\\s+via|\\s+using|\\s+upi|\\s+avail|\\s+bal|\\s+a\\/c|\\.|\\,|$|\\n)"),
+    )
+
+    // Security/disclaimer phrases that must NOT be treated as merchant names
+    private val INVALID_MERCHANT_KEYWORDS = listOf(
+        "your bank", "report", "bank immediately", "customer care", "helpline",
+        "toll free", "1800", "if not", "not you", "dispute", "fraud", "contact",
+        "immediately", "call", "write to", "linked to", "avail bal", "available bal",
+        "a/c", "account", "card", "dear customer", "dear user", "txn", "ref",
     )
 
     // Category auto-inference mapping
@@ -182,13 +194,14 @@ object SmsParser {
         var merchant: String? = null
         for (pattern in MERCHANT_PATTERNS) {
             val matcher = pattern.matcher(normalizedBody)
-            if (matcher.find()) {
+            while (matcher.find()) {
                 val candidate = matcher.group(1)?.trim()?.replace("[.,;]$".toRegex(), "")
-                if (!candidate.isNullOrBlank() && !candidate.equals("your", ignoreCase = true) && !candidate.equals("a/c", ignoreCase = true)) {
+                if (isValidMerchant(candidate)) {
                     merchant = candidate
                     break
                 }
             }
+            if (!merchant.isNullOrBlank()) break
         }
 
         // If no merchant extracted, fallback to sender header
@@ -218,7 +231,21 @@ object SmsParser {
         )
     }
 
-    private fun inferCategory(text: String, type: String): String? {
+    private fun isValidMerchant(candidate: String?): Boolean {
+        if (candidate.isNullOrBlank()) return false
+        val trimmed = candidate.trim()
+        if (trimmed.length < 2 || trimmed.length > 40) return false
+
+        val lower = trimmed.lowercase(Locale.getDefault())
+        for (invalid in INVALID_MERCHANT_KEYWORDS) {
+            if (lower.contains(invalid)) {
+                return false
+            }
+        }
+        return true
+    }
+
+    private fun inferCategory(text: String, type: String): String {
         val lower = text.lowercase(Locale.getDefault())
         if (type == "income") {
             if (lower.contains("salary") || lower.contains("payroll") || lower.contains("stipend")) {
@@ -234,22 +261,38 @@ object SmsParser {
                 }
             }
         }
-        return null
+        return "Other"
     }
 
     private fun cleanSenderHeader(sender: String): String {
-        // e.g. "AD-HDFCBK" -> "HDFC Bank", "VK-SBIINB" -> "SBI"
-        val raw = sender.substringAfter("-").uppercase(Locale.getDefault())
+        // e.g. "AD-HDFCBK" -> "HDFC Bank", "VK-SBIINB" -> "SBI", "BV-IOBCHN-S" -> "IOB"
+        val raw = sender.uppercase(Locale.getDefault())
         return when {
             raw.contains("HDFC") -> "HDFC Bank"
             raw.contains("SBI") -> "State Bank of India"
             raw.contains("ICICI") -> "ICICI Bank"
             raw.contains("AXIS") -> "Axis Bank"
             raw.contains("KOTAK") -> "Kotak Bank"
+            raw.contains("IOB") -> "IOB"
+            raw.contains("PNB") -> "Punjab National Bank"
+            raw.contains("CANARA") || raw.contains("CNRBK") || raw.contains("CANBNK") -> "Canara Bank"
+            raw.contains("BOB") || raw.contains("BARODA") -> "Bank of Baroda"
+            raw.contains("UNION") || raw.contains("UBIN") -> "Union Bank"
+            raw.contains("IDFC") -> "IDFC First Bank"
+            raw.contains("INDUS") -> "IndusInd Bank"
+            raw.contains("YES") -> "Yes Bank"
+            raw.contains("FED") -> "Federal Bank"
+            raw.contains("RBL") -> "RBL Bank"
             raw.contains("CITI") -> "Citi Bank"
             raw.contains("CHASE") -> "Chase Bank"
-            raw.contains("PAYTM") -> "Paytm Bank"
+            raw.contains("PAYTM") || raw.contains("PYTM") -> "Paytm Bank"
             raw.contains("AMEX") -> "American Express"
+            raw.contains("HSBC") -> "HSBC Bank"
+            raw.contains("SCBL") || raw.contains("STAN") -> "Standard Chartered"
+            raw.contains("AUBL") || raw.contains("AUBANK") -> "AU Small Finance Bank"
+            raw.contains("JUPITER") -> "Jupiter"
+            raw.contains("FI") -> "Fi Money"
+            sender.contains("-") -> sender.substringAfter("-").trim()
             raw.isNotBlank() -> raw
             else -> sender
         }
@@ -262,12 +305,12 @@ object SmsParser {
 
     // Bill Statement Detection Regex Patterns
     private val BILL_TOTAL_DUE_PATTERNS = listOf(
-        Pattern.compile("(?i)(?:total\\s*(?:amount|amt)?\\s*due|tot\\s*due|t\\.?\\s*due|amt\\s*due|balance\\s*due)\\s*(?:is|:|=|of)?\\s*(?:rs\\.?|inr|₹|\\$|usd)?\\s*([0-9]{1,3}(?:,[0-9]{2,3})*(?:\\.[0-9]{1,2})?|[0-9]+(?:\\.[0-9]{1,2})?)"),
-        Pattern.compile("(?i)(?:rs\\.?|inr|₹|\\$)\\s*([0-9]{1,3}(?:,[0-9]{2,3})*(?:\\.[0-9]{1,2})?|[0-9]+(?:\\.[0-9]{1,2})?)\\s*(?:is\\s*the\\s*)?(?:total\\s*(?:amount|amt)?\\s*due)"),
+        Pattern.compile("(?i)(?:total\\s*(?:amount|amt)?\\s*due|tot\\s*due|t\\.?\\s*due|amt\\s*due|balance\\s*due)\\s*(?:is|:|=|of)?\\s*(?:rs\\.?|inr|₹|\\$|usd)?\\s*([0-9]+(?:,[0-9]+)*(?:\\.[0-9]{1,2})?)"),
+        Pattern.compile("(?i)(?:rs\\.?|inr|₹|\\$)\\s*([0-9]+(?:,[0-9]+)*(?:\\.[0-9]{1,2})?)\\s*(?:is\\s*the\\s*)?(?:total\\s*(?:amount|amt)?\\s*due)"),
     )
 
     private val BILL_MIN_DUE_PATTERNS = listOf(
-        Pattern.compile("(?i)(?:min(?:imum)?\\s*(?:amount|amt)?\\s*due|min\\s*due|m\\.?\\s*due)\\s*(?:is|:|=|of)?\\s*(?:rs\\.?|inr|₹|\\$|usd)?\\s*([0-9]{1,3}(?:,[0-9]{2,3})*(?:\\.[0-9]{1,2})?|[0-9]+(?:\\.[0-9]{1,2})?)"),
+        Pattern.compile("(?i)(?:min(?:imum)?\\s*(?:amount|amt)?\\s*due|min\\s*due|m\\.?\\s*due)\\s*(?:is|:|=|of)?\\s*(?:rs\\.?|inr|₹|\\$|usd)?\\s*([0-9]+(?:,[0-9]+)*(?:\\.[0-9]{1,2})?)"),
     )
 
     private val BILL_DUE_DATE_PATTERNS = listOf(
@@ -400,4 +443,3 @@ object SmsParser {
         }
     }
 }
-

@@ -64,15 +64,22 @@ class SmsInboxViewModel(private val repository: MoneyRepository) : ViewModel() {
     fun approveAll(defaultAccountId: Long) {
         viewModelScope.launch {
             val list = pendingSms.value
+            val bankAccount = accounts.value.find { acc ->
+                acc.type.equals("bank", ignoreCase = true) || acc.name.contains("bank", ignoreCase = true)
+            }
+            val fallbackAccId = bankAccount?.id ?: defaultAccountId
+
             for (sms in list) {
                 val matchedCat = categories.value.find {
-
                     it.name.equals(sms.suggestedCategory, ignoreCase = true) &&
+                    it.type.equals(sms.type, ignoreCase = true)
+                } ?: categories.value.find {
+                    (it.name.equals("Other", ignoreCase = true) || it.name.equals("Others", ignoreCase = true) || it.name.equals("Other Income", ignoreCase = true)) &&
                     it.type.equals(sms.type, ignoreCase = true)
                 }
                 repository.approveSms(
                     smsId = sms.id,
-                    accountId = sms.suggestedAccountId ?: defaultAccountId,
+                    accountId = sms.suggestedAccountId ?: fallbackAccId,
                     categoryId = matchedCat?.id,
                     toAccountId = null,
                     type = sms.type,
