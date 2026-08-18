@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Money Manager - Offline-First Personal Finance App for Android</title>
+  <meta name="description" content="A modern, 100% offline-first personal finance and wealth management Android application built with Jetpack Compose, Material 3, Room Database, and Biometrics.">
+  <meta name="keywords" content="Money Manager, Android, Jetpack Compose, Personal Finance, Offline Expense Tracker, Budget Manager, Kotlin, Room Database">
+  <meta name="author" content="Arun Kumar">
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://arunkumarm-git.github.io/MoneyManagerAndroid/">
+  <meta property="og:title" content="Money Manager - Modern Android Finance App">
+  <meta property="og:description" content="Track net worth, income, expenses, savings goals, recurring bills, and analytics. 100% offline & private.">
+  <meta property="og:image" content="favicon.svg">
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:title" content="Money Manager - Android App">
+  <meta property="twitter:description" content="Master your finances offline with Jetpack Compose & Material 3.">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  
+  <!-- Google Fonts: Outfit & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Ambient Gradient Background Elements -->
+  <div class="glow-orb glow-orb-1" aria-hidden="true"></div>
+  <div class="glow-orb glow-orb-2" aria-hidden="true"></div>
+  <div class="glow-orb glow-orb-3" aria-hidden="true"></div>
+
+  <!-- Header Navigation -->
+  <header class="site-header" id="top">
+    <nav class="nav-container">
+      <a href="#top" class="brand-logo" id="nav-brand">
+        <div class="logo-icon-wrapper">
+          <svg viewBox="0 0 100 100" class="brand-svg">
+            <rect width="100" height="100" rx="24" fill="#0f172a" />
+            <rect x="22" y="26" width="56" height="48" rx="14" fill="#10b981" />
+            <path d="M 22 42 L 78 42" stroke="rgba(255,255,255,0.3)" stroke-width="2" />
+            <rect x="52" y="44" width="26" height="14" rx="7" fill="#0f172a" />
+            <circle cx="60" cy="51" r="3.5" fill="#34d399" />
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">Money Manager</span>
+          <span class="brand-badge">Android</span>
+        </div>
+      </a>
+
+      <div class="nav-links" id="navLinks">
+        <a href="#features" class="nav-link">Features</a>
+        <a href="#simulator" class="nav-link">Live Demo</a>
+        <a href="#security" class="nav-link">Privacy & Security</a>
+        <a href="#analytics" class="nav-link">Analytics</a>
+        <a href="#guide" class="nav-link">Install Guide</a>
+      </div>
+
+      <div class="nav-actions">
+        <!-- Currency Switcher -->
+        <div class="currency-picker" title="Change currency format for preview">
+          <span class="currency-label">Currency:</span>
+          <select id="currencySelector" class="currency-select" aria-label="Select Currency">
+            <option value="INR" selected>₹ INR</option>
+            <option value="USD">$ USD</option>
+            <option value="EUR">€ EUR</option>
+            <option value="GBP">£ GBP</option>
+            <option value="JPY">¥ JPY</option>
+          </select>
+        </div>
+
+        <a href="https://github.com/arunkumarm-git/MoneyManagerAndroid" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-icon" id="githubHeaderBtn" title="View Source on GitHub">
+          <svg class="icon-svg" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+          </svg>
+          <span>GitHub</span>
+        </a>
+
+        <a href="#download" class="btn btn-primary" id="headerDownloadBtn">
+          <span>Get APK</span>
+          <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v7.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V4a1 1 0 011-1zM4 16a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1z" clip-rule="evenodd"/>
+          </svg>
+        </a>
+
+        <!-- Mobile Menu Toggle -->
+        <button class="mobile-toggle" id="mobileMenuBtn" aria-label="Toggle navigation menu">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <!-- HERO SECTION -->
+    <section class="hero-section">
+      <div class="hero-container">
+        <div class="hero-content">
+          <div class="hero-tag">
+            <span class="tag-pulse"></span>
+            <span>100% Offline &amp; Privacy-First Personal Finance</span>
+          </div>
+
+          <h1 class="hero-headline">
+            Master your wealth with <span class="gradient-text">Zero Cloud</span> &amp; Total Privacy.
+          </h1>
+
+          <p class="hero-subhead">
+            A fast, beautiful, offline-first Android application designed with <strong>Jetpack Compose</strong> and <strong>Material 3</strong>. Track multi-account net worth, analyze monthly trends, automate subscriptions, set savings targets, and sync bank SMS alerts safely on-device.
+          </p>
+
+          <div class="hero-cta-group">
+            <a href="#download" class="btn btn-hero-primary" id="heroDownloadBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              <span>Download Debug APK</span>
+            </a>
+            
+            <a href="https://github.com/arunkumarm-git/MoneyManagerAndroid" target="_blank" rel="noopener noreferrer" class="btn btn-hero-secondary">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+              </svg>
+              <span>Star on GitHub</span>
+            </a>
+          </div>
+
+          <!-- Feature Pill Badges -->
+          <div class="tech-pills">
+            <span class="tech-pill"><span class="pill-dot"></span> Kotlin &amp; Compose</span>
+            <span class="tech-pill"><span class="pill-dot"></span> Material 3</span>
+            <span class="tech-pill"><span class="pill-dot"></span> Room SQLite DB</span>
+            <span class="tech-pill"><span class="pill-dot"></span> Biometric Lock</span>
+            <span class="tech-pill"><span class="pill-dot"></span> Zero Ads &amp; No Cloud</span>
+          </div>
+        </div>
+
+        <!-- HERO INTERACTIVE PHONE MOCKUP -->
+        <div class="hero-mockup-wrapper">
+          <div class="phone-frame">
+            <div class="phone-notch">
+              <span class="notch-camera"></span>
+              <span class="notch-speaker"></span>
+            </div>
+
+            <!-- Phone Top Status Bar -->
+            <div class="phone-status-bar">
+              <span class="status-time" id="deviceClock">09:41</span>
+              <div class="status-icons">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L12 22l7.03-4.39C20.26 16.07 21 14.12 21 12c0-4.97-4.03-9-9-9z"/></svg>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98C20.93 5.9 16.69 4 12 4z"/></svg>
+                <span class="status-battery">100%</span>
+              </div>
+            </div>
+
+            <!-- Phone Interactive App Container -->
+            <div class="phone-screen-content" id="phoneAppContainer">
+              <!-- Phone Header -->
+              <div class="app-top-bar">
+                <div class="user-greeting">
+                  <div class="avatar-circle">AK</div>
+                  <div class="greeting-info">
+                    <span class="greeting-sub">Welcome back,</span>
+                    <span class="greeting-name">Arun Kumar</span>
+                  </div>
+                </div>
+                <div class="top-bar-actions">
+                  <button class="icon-btn-round" id="privacyToggleBtn" title="Toggle Privacy Mask Mode">
+                    <svg id="eyeIconOpen" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    <svg id="eyeIconClosed" class="hidden" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                      <line x1="1" y1="1" x2="23" y2="23"></line>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Phone Screen Dynamic View -->
+              <div class="mockup-view-body" id="mockupBody">
+                <!-- TAB 1: OVERVIEW -->
+                <div class="tab-pane active" id="paneOverview">
+                  <!-- Net Worth Card -->
+                  <div class="glass-card net-worth-card">
+                    <div class="card-header-sm">
+                      <span>Total Net Worth</span>
+                      <span class="trend-badge positive">+14.2%</span>
+                    </div>
+                    <div class="balance-display maskable-value" data-raw-inr="248500">₹2,48,500.00</div>
+                    <div class="monthly-split">
+                      <div class="split-item income">
+                        <span class="split-lbl">Monthly Income</span>
+                        <span class="split-val maskable-value" data-raw-inr="85000">+₹85,000</span>
+                      </div>
+                      <div class="split-divider"></div>
+                      <div class="split-item expense">
+                        <span class="split-lbl">Monthly Expense</span>
+                        <span class="split-val maskable-value" data-raw-inr="28450">-₹28,450</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Quick Account Pills -->
+                  <div class="section-title-row">
+                    <span class="section-lbl">Accounts</span>
+                    <span class="section-link">Manage</span>
+                  </div>
+                  <div class="accounts-scroll-row">
+                    <div class="account-chip">
+                      <div class="chip-icon bank">🏛️</div>
+                      <div class="chip-details">
+                        <span class="chip-name">HDFC Bank</span>
+                        <span class="chip-bal maskable-value" data-raw-inr="165000">₹1,65,000</span>
+                      </div>
+                    </div>
+                    <div class="account-chip">
+                      <div class="chip-icon cash">💵</div>
+                      <div class="chip-details">
+                        <span class="chip-name">Cash Wallet</span>
+                        <span class="chip-bal maskable-value" data-raw-inr="12500">₹12,500</span>
+                      </div>
+                    </div>
+                    <div class="account-chip">
+                      <div class="chip-icon card">💳</div>
+                      <div class="chip-details">
+                        <span class="chip-name">ICICI Coral</span>
+                        <span class="chip-bal maskable-value" data-raw-inr="71000">₹71,000</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Recent Transactions List -->
+                  <div class="section-title-row">
+                    <span class="section-lbl">Recent Activity</span>
+                    <span class="section-link">View All</span>
+                  </div>
+                  <div class="transactions-mini-list" id="mockupTxList">
+                    <div class="tx-item">
+                      <div class="tx-icon grocery">🛒</div>
+                      <div class="tx-info">
+                        <span class="tx-title">Supermarket Groceries</span>
+                        <span class="tx-date">Today • HDFC Bank</span>
+                      </div>
+                      <span class="tx-amount expense maskable-value" data-raw-inr="2450">-₹2,450</span>
+                    </div>
+                    <div class="tx-item">
+                      <div class="tx-icon salary">💼</div>
+                      <div class="tx-info">
+                        <span class="tx-title">Tech Corp Salary</span>
+                        <span class="tx-date">1st Aug • HDFC Bank</span>
+                      </div>
+                      <span class="tx-amount income maskable-value" data-raw-inr="85000">+₹85,000</span>
+                    </div>
+                    <div class="tx-item">
+                      <div class="tx-icon entertainment">🎬</div>
+                      <div class="tx-info">
+                        <span class="tx-title">Netflix Subscription</span>
+                        <span class="tx-date">Yesterday • Auto-applied</span>
+                      </div>
+                      <span class="tx-amount expense maskable-value" data-raw-inr="499">-₹499</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- TAB 2: ANALYTICS -->
+                <div class="tab-pane" id="paneAnalytics">
+                  <div class="chart-summary-card">
+                    <div class="chart-title-row">
+                      <span>Expense Breakdown</span>
+                      <span class="chart-period">This Month</span>
+                    </div>
+                    <div class="donut-container">
+                      <svg class="donut-chart" viewBox="0 0 36 36">
+                        <path class="donut-ring" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="4"/>
+                        <path class="donut-segment segment-1" stroke-dasharray="40 60" stroke-dashoffset="25" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#10b981" stroke-width="4.2"/>
+                        <path class="donut-segment segment-2" stroke-dasharray="25 75" stroke-dashoffset="85" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#3b82f6" stroke-width="4.2"/>
+                        <path class="donut-segment segment-3" stroke-dasharray="20 80" stroke-dashoffset="60" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#f59e0b" stroke-width="4.2"/>
+                        <path class="donut-segment segment-4" stroke-dasharray="15 85" stroke-dashoffset="40" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#ec4899" stroke-width="4.2"/>
+                      </svg>
+                      <div class="donut-center-text">
+                        <span class="donut-lbl">Total Spent</span>
+                        <span class="donut-val maskable-value" data-raw-inr="28450">₹28.4k</span>
+                      </div>
+                    </div>
+                    <div class="donut-legend">
+                      <div class="legend-row"><span class="legend-dot" style="background:#10b981"></span><span>Housing &amp; Rent (40%)</span><span class="legend-amt maskable-value" data-raw-inr="11380">₹11,380</span></div>
+                      <div class="legend-row"><span class="legend-dot" style="background:#3b82f6"></span><span>Food &amp; Dining (25%)</span><span class="legend-amt maskable-value" data-raw-inr="7112">₹7,112</span></div>
+                      <div class="legend-row"><span class="legend-dot" style="background:#f59e0b"></span><span>Shopping &amp; Gear (20%)</span><span class="legend-amt maskable-value" data-raw-inr="5690">₹5,690</span></div>
+                      <div class="legend-row"><span class="legend-dot" style="background:#ec4899"></span><span>Entertainment (15%)</span><span class="legend-amt maskable-value" data-raw-inr="4268">₹4,268</span></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- TAB 3: GOALS -->
+                <div class="tab-pane" id="paneGoals">
+                  <div class="goal-item-card">
+                    <div class="goal-header">
+                      <div class="goal-badge-icon">🏖️</div>
+                      <div class="goal-title-box">
+                        <span class="goal-name">Bali Vacation Fund</span>
+                        <span class="goal-target">Target: <span class="maskable-value" data-raw-inr="120000">₹1,20,000</span></span>
+                      </div>
+                      <span class="goal-percent">65%</span>
+                    </div>
+                    <div class="progress-bar-track">
+                      <div class="progress-fill" style="width: 65%;"></div>
+                    </div>
+                    <div class="goal-footer">
+                      <span>Saved: <strong class="maskable-value" data-raw-inr="78000">₹78,000</strong></span>
+                      <span class="goal-eta">Target: Dec 2026</span>
+                    </div>
+                  </div>
+
+                  <div class="goal-item-card">
+                    <div class="goal-header">
+                      <div class="goal-badge-icon">💻</div>
+                      <div class="goal-title-box">
+                        <span class="goal-name">M3 Pro MacBook Setup</span>
+                        <span class="goal-target">Target: <span class="maskable-value" data-raw-inr="200000">₹2,00,000</span></span>
+                      </div>
+                      <span class="goal-percent">85%</span>
+                    </div>
+                    <div class="progress-bar-track">
+                      <div class="progress-fill" style="width: 85%;"></div>
+                    </div>
+                    <div class="goal-footer">
+                      <span>Saved: <strong class="maskable-value" data-raw-inr="170000">₹1,70,000</strong></span>
+                      <span class="goal-eta">Target: Oct 2026</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- TAB 4: RECURRING -->
+                <div class="tab-pane" id="paneRecurring">
+                  <div class="sub-alert-box">
+                    <div class="sub-alert-icon">⚡</div>
+                    <div class="sub-alert-txt">
+                      <strong>WorkManager Auto-Apply</strong>
+                      <span>Recurring bills are logged automatically on due dates.</span>
+                    </div>
+                  </div>
+                  <div class="recurring-list">
+                    <div class="rec-item">
+                      <div class="rec-icon">🍿</div>
+                      <div class="rec-details">
+                        <span class="rec-title">Netflix Premium 4K</span>
+                        <span class="rec-freq">Monthly • Due 1st of month</span>
+                      </div>
+                      <span class="rec-cost maskable-value" data-raw-inr="649">₹649/mo</span>
+                    </div>
+                    <div class="rec-item">
+                      <div class="rec-icon">🎵</div>
+                      <div class="rec-details">
+                        <span class="rec-title">Spotify Family Plan</span>
+                        <span class="rec-freq">Monthly • Due 15th</span>
+                      </div>
+                      <span class="rec-cost maskable-value" data-raw-inr="179">₹179/mo</span>
+                    </div>
+                    <div class="rec-item">
+                      <div class="rec-icon">🏠</div>
+                      <div class="rec-details">
+                        <span class="rec-title">Apartment Rent</span>
+                        <span class="rec-freq">Monthly • Due 5th</span>
+                      </div>
+                      <span class="rec-cost maskable-value" data-raw-inr="18000">₹18,000/mo</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- TAB 5: SECURITY -->
+                <div class="tab-pane" id="paneSecurity">
+                  <div class="security-lock-visual">
+                    <div class="bio-icon-pulse">
+                      <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#10b981" stroke-width="1.8">
+                        <path d="M12 11c0 3.31-2.69 6-6 6v2c4.42 0 8-3.58 8-8V5.08c0-.6-.49-1.08-1.08-1.08-.6 0-1.08.49-1.08 1.08V11zm6-6.92v2.09c2.41 1.25 4 3.84 4 6.83 0 4.42-3.58 8-8 8v2c5.52 0 10-4.48 10-10 0-3.8-2.14-7.07-5.26-8.73-.23-.12-.48-.19-.74-.19z"/>
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+                      </svg>
+                    </div>
+                    <h4>Biometric App Lock</h4>
+                    <p>Protected by Android BiometricPrompt. Supports Fingerprint, Face Unlock, and Hardware-backed PIN.</p>
+                    <div class="security-badge-pill">🔒 Encrypted On-Device Only</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Phone Bottom Navigation -->
+              <div class="mockup-bottom-nav">
+                <button class="nav-tab-btn active" data-tab="paneOverview" title="Overview">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                  <span>Home</span>
+                </button>
+                <button class="nav-tab-btn" data-tab="paneAnalytics" title="Analytics">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+                  <span>Analytics</span>
+                </button>
+                <button class="nav-tab-btn" data-tab="paneGoals" title="Goals">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm1-13h-2v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+                  <span>Goals</span>
+                </button>
+                <button class="nav-tab-btn" data-tab="paneRecurring" title="Recurring Bills">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+                  <span>Recurring</span>
+                </button>
+                <button class="nav-tab-btn" data-tab="paneSecurity" title="Security Lock">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+                  <span>Security</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HIGHLIGHT STATS STRIP -->
+    <section class="stats-strip">
+      <div class="section-container">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon">🛡️</div>
+            <div class="stat-num">100%</div>
+            <div class="stat-desc">On-Device SQLite. Zero telemetry, zero analytics tracking.</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">⚡</div>
+            <div class="stat-num">0 ms</div>
+            <div class="stat-desc">Cloud Latency. Instant responsiveness even without internet.</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">💾</div>
+            <div class="stat-num">JSON &amp; CSV</div>
+            <div class="stat-desc">Full database snapshots and spreadsheet export anytime.</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🔒</div>
+            <div class="stat-num">Biometric</div>
+            <div class="stat-desc">Hardware-backed fingerprint and face lock security.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LIVE INTERACTIVE SIMULATOR -->
+    <section class="simulator-section" id="simulator">
+      <div class="section-container">
+        <div class="section-header text-center">
+          <span class="section-badge">Interactive Playground</span>
+          <h2 class="section-title">Test Drive the Expense Logger</h2>
+          <p class="section-subtitle">Experience how fast and fluid transaction logging feels. Add a simulated record below and watch the calculations update in real time!</p>
+        </div>
+
+        <div class="simulator-card">
+          <div class="simulator-form-side">
+            <h3 class="form-title">⚡ Quick Transaction Logger</h3>
+            <form id="simForm" onsubmit="event.preventDefault();">
+              <div class="form-group">
+                <label for="simTitle">Description / Title</label>
+                <input type="text" id="simTitle" placeholder="e.g., Starbucks Coffee, Freelance Payout" required value="Blue Tokai Coffee">
+              </div>
+
+              <div class="form-row">
+                <div class="form-group half">
+                  <label for="simAmount">Amount (<span id="simCurrencySymbol">₹</span>)</label>
+                  <input type="number" id="simAmount" placeholder="0.00" value="280" required min="1" step="any">
+                </div>
+                <div class="form-group half">
+                  <label for="simType">Type</label>
+                  <select id="simType">
+                    <option value="EXPENSE" selected>Expense (-)</option>
+                    <option value="INCOME">Income (+)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group half">
+                  <label for="simCategory">Category</label>
+                  <select id="simCategory">
+                    <option value="Food & Dining">🍔 Food &amp; Dining</option>
+                    <option value="Groceries">🛒 Groceries</option>
+                    <option value="Shopping">🛍️ Shopping</option>
+                    <option value="Transportation">🚕 Transport</option>
+                    <option value="Entertainment">🎬 Entertainment</option>
+                    <option value="Salary">💼 Salary / Freelance</option>
+                    <option value="Investments">📈 Investments</option>
+                  </select>
+                </div>
+                <div class="form-group half">
+                  <label for="simAccount">Account</label>
+                  <select id="simAccount">
+                    <option value="HDFC Bank">🏛️ HDFC Bank</option>
+                    <option value="Cash Wallet">💵 Cash Wallet</option>
+                    <option value="ICICI Coral">💳 ICICI Coral Card</option>
+                  </select>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-block" id="simSubmitBtn">
+                <span>Add Record to Demo Mockup</span>
+                <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+              </button>
+            </form>
+          </div>
+
+          <div class="simulator-preview-side">
+            <div class="sim-header">
+              <span class="sim-title-label">Live Calculation Preview</span>
+              <span class="sim-status-pill">● Synchronized</span>
+            </div>
+
+            <div class="sim-stats-row">
+              <div class="sim-stat-box">
+                <span class="sim-stat-lbl">Simulated Net Worth</span>
+                <span class="sim-stat-val" id="simNetWorthDisplay">₹2,48,220.00</span>
+              </div>
+              <div class="sim-stat-box">
+                <span class="sim-stat-lbl">Month Expenses</span>
+                <span class="sim-stat-val expense" id="simExpenseDisplay">₹28,730.00</span>
+              </div>
+            </div>
+
+            <div class="sim-log-header">
+              <span>Simulated Activity Log</span>
+              <button class="sim-reset-btn" id="simResetBtn" title="Reset to defaults">Reset</button>
+            </div>
+
+            <div class="sim-log-list" id="simLogList">
+              <!-- Dynamically populated via app.js -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CORE FEATURES SHOWCASE -->
+    <section class="features-section" id="features">
+      <div class="section-container">
+        <div class="section-header text-center">
+          <span class="section-badge">Engineered for Performance</span>
+          <h2 class="section-title">Built with Cutting-Edge Modern Android</h2>
+          <p class="section-subtitle">Every pixel and database query is crafted for maximum speed, security, and battery efficiency.</p>
+        </div>
+
+        <div class="features-grid">
+          <!-- Card 1 -->
+          <div class="feature-card">
+            <div class="feature-icon-box">📊</div>
+            <h3>Multi-Account &amp; Net Worth</h3>
+            <p>Seamlessly organize Cash, Bank Accounts, Digital Wallets, and Credit Cards. Instant computation of your consolidated financial net worth in real time.</p>
+            <ul class="feature-checklist">
+              <li>Individual account balance histories</li>
+              <li>Credit card billing cycle alerts</li>
+              <li>Custom icons and color identifiers</li>
+            </ul>
+          </div>
+
+          <!-- Card 2 -->
+          <div class="feature-card" id="analytics">
+            <div class="feature-icon-box">📈</div>
+            <h3>Visual Trends &amp; Drilldowns</h3>
+            <p>Understand where every rupee goes with interactive Donut category charts and 6-month monthly income vs. expense visual comparisons.</p>
+            <ul class="feature-checklist">
+              <li>Tap-to-drilldown category bottom sheets</li>
+              <li>Monthly budget progress indicators</li>
+              <li>Exportable analytical summaries</li>
+            </ul>
+          </div>
+
+          <!-- Card 3 -->
+          <div class="feature-card">
+            <div class="feature-icon-box">🎯</div>
+            <h3>Savings Goals &amp; Buckets</h3>
+            <p>Plan vacations, emergency funds, or tech upgrades with dedicated target buckets and real-time completion milestone indicators.</p>
+            <ul class="feature-checklist">
+              <li>Progress bar percentage tracking</li>
+              <li>Target date countdowns</li>
+              <li>1-tap quick deposit dialog</li>
+            </ul>
+          </div>
+
+          <!-- Card 4 -->
+          <div class="feature-card">
+            <div class="feature-icon-box">🔄</div>
+            <h3>Automated Recurring Schedules</h3>
+            <p>Set up rent, utility bills, and Netflix/Spotify subscriptions on Daily, Weekly, Monthly, or Yearly frequencies using Android WorkManager.</p>
+            <ul class="feature-checklist">
+              <li>Zero manual logging on due dates</li>
+              <li>Notification alerts prior to debit</li>
+              <li>Active &amp; paused subscription toggles</li>
+            </ul>
+          </div>
+
+          <!-- Card 5 -->
+          <div class="feature-card">
+            <div class="feature-icon-box">💬</div>
+            <h3>Bank SMS Parsing &amp; Sync</h3>
+            <p>Safely parse incoming transactional SMS alerts from major banks directly on your phone and convert them to draft records with zero data egress.</p>
+            <ul class="feature-checklist">
+              <li>100% on-device regex &amp; NLP extraction</li>
+              <li>Pending review inbox queue</li>
+              <li>Never uploads SMS to any server</li>
+            </ul>
+          </div>
+
+          <!-- Card 6 -->
+          <div class="feature-card">
+            <div class="feature-icon-box">💾</div>
+            <h3>Full Backup, Restore &amp; CSV</h3>
+            <p>Own your data forever. Export complete database snapshots to portable JSON files or export and import standard CSVs for Excel and Google Sheets.</p>
+            <ul class="feature-checklist">
+              <li>1-Click full database JSON snapshot</li>
+              <li>Universal CSV schema compatibility</li>
+              <li>Offline migration and restore</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PRIVACY & SECURITY COMPARISON -->
+    <section class="security-section" id="security">
+      <div class="section-container">
+        <div class="section-header text-center">
+          <span class="section-badge">Privacy First</span>
+          <h2 class="section-title">Why Offline-First Matters</h2>
+          <p class="section-subtitle">Financial data is personal. Money Manager guarantees your financial records never leave your physical device.</p>
+        </div>
+
+        <div class="comparison-table-wrapper">
+          <table class="comparison-table">
+            <thead>
+              <tr>
+                <th>Security &amp; Privacy Dimension</th>
+                <th class="col-highlight">💰 Money Manager</th>
+                <th>Typical Cloud Finance Apps</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="dim-title">Data Storage</td>
+                <td class="col-highlight"><span class="check-icon">✓</span> 100% Local SQLite on Device</td>
+                <td><span class="cross-icon">✗</span> Third-party Cloud Servers</td>
+              </tr>
+              <tr>
+                <td class="dim-title">User Registration / Sign-In</td>
+                <td class="col-highlight"><span class="check-icon">✓</span> No Account or Email Needed</td>
+                <td><span class="cross-icon">✗</span> Mandatory Phone/Email Sign-up</td>
+              </tr>
+              <tr>
+                <td class="dim-title">Data Monetization &amp; Ads</td>
+                <td class="col-highlight"><span class="check-icon">✓</span> Zero Ads, Zero Data Brokering</td>
+                <td><span class="cross-icon">✗</span> Behavioral Ad Tracking &amp; Upselling</td>
+              </tr>
+              <tr>
+                <td class="dim-title">Biometric App Lock</td>
+                <td class="col-highlight"><span class="check-icon">✓</span> Hardware Fingerprint &amp; Face Unlock</td>
+                <td><span class="warn-icon">~</span> Sometimes behind paid paywalls</td>
+              </tr>
+              <tr>
+                <td class="dim-title">Privacy Mask Mode</td>
+                <td class="col-highlight"><span class="check-icon">✓</span> 1-Tap Blur Eye Icon for Public Use</td>
+                <td><span class="cross-icon">✗</span> Balances always visible</td>
+              </tr>
+              <tr>
+                <td class="dim-title">Offline Availability</td>
+                <td class="col-highlight"><span class="check-icon">✓</span> Full features 100% without internet</td>
+                <td><span class="cross-icon">✗</span> Fails / spins without network</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- INSTALLATION & GETTING STARTED -->
+    <section class="guide-section" id="guide">
+      <div class="section-container">
+        <div class="section-header text-center">
+          <span class="section-badge">Quickstart</span>
+          <h2 class="section-title">How to Install &amp; Build</h2>
+          <p class="section-subtitle">Get the app running on your Android device in under 2 minutes.</p>
+        </div>
+
+        <div class="install-steps-grid">
+          <!-- Option 1: Direct APK -->
+          <div class="install-card" id="download">
+            <div class="step-num">01</div>
+            <h3>Direct APK Installation</h3>
+            <p>Download the debug build directly and install it on your Android 8.0+ smartphone.</p>
+            <div class="download-box">
+              <a href="https://github.com/arunkumarm-git/MoneyManagerAndroid/releases" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-block">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <span>Download APK from GitHub Releases</span>
+              </a>
+              <span class="version-meta">Target: Android SDK 34 • Min: Android 8.0 (API 26)</span>
+            </div>
+          </div>
+
+          <!-- Option 2: Build from Source -->
+          <div class="install-card">
+            <div class="step-num">02</div>
+            <h3>Build from Source</h3>
+            <p>Clone the repository and compile using the Gradle wrapper with JDK 17:</p>
+            <div class="code-block">
+              <div class="code-header">
+                <span>Terminal / PowerShell</span>
+                <button class="copy-code-btn" data-clipboard="git clone https://github.com/arunkumarm-git/MoneyManagerAndroid.git&#10;cd MoneyManagerAndroid&#10;./gradlew assembleDebug">Copy</button>
+              </div>
+              <pre><code><span class="code-cmd">git clone</span> https://github.com/arunkumarm-git/MoneyManagerAndroid.git
+<span class="code-cmd">cd</span> MoneyManagerAndroid
+<span class="code-cmd">./gradlew</span> assembleDebug</code></pre>
+            </div>
+          </div>
+
+          <!-- Option 3: Wireless ADB -->
+          <div class="install-card">
+            <div class="step-num">03</div>
+            <h3>Deploy Wirelessly via ADB</h3>
+            <p>Enable Wireless Debugging in Android Developer Options and deploy straight from your laptop:</p>
+            <div class="code-block">
+              <div class="code-header">
+                <span>Terminal / ADB</span>
+                <button class="copy-code-btn" data-clipboard="adb pair <PHONE_IP>:<PAIRING_PORT>&#10;adb connect <PHONE_IP>:<PORT>&#10;./gradlew installDebug">Copy</button>
+              </div>
+              <pre><code><span class="code-cmd">adb pair</span> &lt;PHONE_IP&gt;:&lt;PAIRING_PORT&gt;
+<span class="code-cmd">adb connect</span> &lt;PHONE_IP&gt;:&lt;PORT&gt;
+<span class="code-cmd">./gradlew</span> installDebug</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ SECTION -->
+    <section class="faq-section">
+      <div class="section-container">
+        <div class="section-header text-center">
+          <span class="section-badge">Frequently Asked Questions</span>
+          <h2 class="section-title">Everything You Need to Know</h2>
+        </div>
+
+        <div class="faq-accordion">
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>Is my financial data uploaded to any server or third-party service?</span>
+              <svg class="faq-chevron" viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+            </button>
+            <div class="faq-answer">
+              <p>No, absolutely never. Money Manager is 100% offline-first. All accounts, transactions, categories, savings goals, and recurring items reside strictly in your device's local SQLite database (powered by Android Room DB).</p>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>How does automated recurring payments work if the app is closed?</span>
+              <svg class="faq-chevron" viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+            </button>
+            <div class="faq-answer">
+              <p>Money Manager uses Android's native <strong>WorkManager</strong> API. It schedules a periodic background job that runs seamlessly on due dates to apply recurring subscriptions (rent, bills, utilities) and notify you automatically.</p>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>Can I back up my data and restore it if I switch phones?</span>
+              <svg class="faq-chevron" viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+            </button>
+            <div class="faq-answer">
+              <p>Yes! Money Manager includes a 1-tap <strong>Full JSON Snapshot</strong> export and import tool, as well as universal <strong>CSV export</strong> compatible with Microsoft Excel, Google Sheets, and LibreOffice.</p>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>What Android versions are supported?</span>
+              <svg class="faq-chevron" viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+            </button>
+            <div class="faq-answer">
+              <p>The app supports Android 8.0 Oreo (API Level 26) up to Android 14 / 15 (Target SDK 34), covering 98%+ of active Android devices worldwide.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="section-container footer-content">
+      <div class="footer-brand-col">
+        <div class="brand-logo">
+          <div class="logo-icon-wrapper">
+            <svg viewBox="0 0 100 100" class="brand-svg">
+              <rect width="100" height="100" rx="24" fill="#0f172a" />
+              <rect x="22" y="26" width="56" height="48" rx="14" fill="#10b981" />
+              <circle cx="60" cy="51" r="3.5" fill="#34d399" />
+            </svg>
+          </div>
+          <span class="brand-title">Money Manager</span>
+        </div>
+        <p class="footer-desc">An open-source, private, and modern Android financial wealth tracking system built with Jetpack Compose &amp; Room SQLite.</p>
+      </div>
+
+      <div class="footer-links-col">
+        <h4>Navigation</h4>
+        <ul>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#simulator">Interactive Demo</a></li>
+          <li><a href="#security">Privacy Matrix</a></li>
+          <li><a href="#guide">Installation Guide</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-links-col">
+        <h4>Open Source</h4>
+        <ul>
+          <li><a href="https://github.com/arunkumarm-git/MoneyManagerAndroid" target="_blank" rel="noopener noreferrer">GitHub Repository</a></li>
+          <li><a href="https://github.com/arunkumarm-git/MoneyManagerAndroid/releases" target="_blank" rel="noopener noreferrer">Releases &amp; APKs</a></li>
+          <li><a href="https://github.com/arunkumarm-git/MoneyManagerAndroid/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT License</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <div class="section-container footer-bottom-inner">
+        <span>© 2026 Arun Kumar. Released under the MIT License.</span>
+        <span>Hosted on GitHub Pages</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
