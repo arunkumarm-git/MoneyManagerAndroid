@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0B132B"/>
+      <stop offset="100%" stop-color="#0F172A"/>
+    </linearGradient>
+    <linearGradient id="walletGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E3A8A"/>
+      <stop offset="100%" stop-color="#0F172A"/>
+    </linearGradient>
+    <linearGradient id="tealGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2DD4BF"/>
+      <stop offset="100%" stop-color="#0D9488"/>
+    </linearGradient>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#0284C7"/>
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#4ADE80"/>
+      <stop offset="100%" stop-color="#16A34A"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE047"/>
+      <stop offset="50%" stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#D97706"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Full Background with subtle rounded corners as per Play Store guidelines -->
+  <rect width="512" height="512" fill="url(#bgGrad)"/>
+
+  <!-- Centered container for exact in-app launcher logo -->
+  <g transform="translate(43, 43) scale(3.94444)" filter="url(#shadow)">
+    <!-- Base Disc -->
+    <circle cx="54" cy="54" r="32" fill="#151E38" />
+
+    <!-- Modern Wallet / Vault Base Shape -->
+    <rect x="30" y="30" width="48" height="48" rx="6" fill="url(#walletGrad)" stroke="#1E293B" stroke-width="0.75" />
+
+    <!-- Left Bar (Teal) -->
+    <rect x="36" y="52" width="8" height="18" rx="2" fill="url(#tealGrad)" />
+
+    <!-- Center Bar (Electric Blue) -->
+    <rect x="46" y="44" width="8" height="26" rx="2" fill="url(#blueGrad)" />
+
+    <!-- Right Bar (Vibrant Emerald) -->
+    <rect x="56" y="38" width="8" height="34" rx="2" fill="url(#greenGrad)" />
+
+    <!-- Dynamic Growth Arrow -->
+    <path d="M66,35 L74,35 C74.552,35 75,35.448 75,36 L75,44 C75,44.552 74.33,44.83 73.94,44.44 L71.5,42.0 L62.7,50.8 C62.31,51.19 61.68,51.19 61.29,50.8 L56.7,46.2 L41.7,61.2 C41.31,61.59 40.68,61.59 40.29,61.2 L38.3,59.2 C37.91,58.81 37.91,58.18 38.3,57.79 L55.3,40.79 C55.69,40.4 56.32,40.4 56.71,40.79 L61.3,45.38 L68.5,38.18 L66.06,35.74 C65.67,35.35 65.95,34.68 66.5,34.68 Z" fill="#10B981" />
+
+    <!-- Radiant Gold Coin Badge -->
+    <circle cx="68" cy="70" r="10" fill="url(#goldGrad)" />
+    <circle cx="68" cy="70" r="7.5" fill="none" stroke="#FEF08A" stroke-width="0.8" />
+
+    <!-- Coin Emblem Symbol -->
+    <path d="M68,65 L69.5,68.5 L73,70 L69.5,71.5 L68,75 L66.5,71.5 L63,70 L66.5,68.5 Z" fill="#FFFFFF" />
+  </g>
+</svg>
