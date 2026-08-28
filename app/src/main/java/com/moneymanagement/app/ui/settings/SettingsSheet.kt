@@ -10,10 +10,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DarkMode
@@ -25,18 +28,18 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Paid
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Sms
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.filled.Warning
 
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -223,7 +226,7 @@ fun SettingsSheet(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                    Icon(Icons.Filled.VolumeUp, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(end = 12.dp))
+                    Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(end = 12.dp))
                     Column {
                         Text("Button click sound", style = MaterialTheme.typography.bodyLarge)
                         Text("Play a subtle sound on interactions", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -278,7 +281,7 @@ fun SettingsSheet(
                 }
             }
 
-            Divider(modifier = Modifier.padding(vertical = 4.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
             // --- Section: Security & Privacy ---
             Text("Security & Privacy", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
@@ -327,13 +330,40 @@ fun SettingsSheet(
                 )
             }
 
-            Divider(modifier = Modifier.padding(vertical = 4.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
             // --- Section: SMS Auto-Tracking ---
             Text("SMS Auto-Tracking", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
 
             val smsTrackingEnabled by AppSettings.smsTrackingEnabled.collectAsState()
             val autoApproveSms by AppSettings.autoApproveSms.collectAsState()
+            var scanDaysChoice by remember { mutableStateOf(30) }
+            var isScanningSms by remember { mutableStateOf(false) }
+
+            val historicalSmsLauncher = rememberLauncherForActivityResult(
+                ActivityResultContracts.RequestMultiplePermissions()
+            ) { permissions ->
+                val granted = permissions[android.Manifest.permission.READ_SMS] == true ||
+                              permissions[android.Manifest.permission.RECEIVE_SMS] == true
+                if (granted) {
+                    AppSettings.setSmsTrackingEnabled(true)
+                    scope.launch {
+                        isScanningSms = true
+                        try {
+                            val stats = com.moneymanagement.app.sms.SmsSyncManager.scanHistoricalSmsDetailed(context, repository, scanDaysChoice)
+                            val total = stats.transactionsFound + stats.billsFound
+                            val msg = if (total > 0) "Found $total new transactions from SMS!" else "No new transactions found in SMS."
+                            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Scan error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                        } finally {
+                            isScanningSms = false
+                        }
+                    }
+                } else {
+                    Toast.makeText(context, "SMS permission denied", Toast.LENGTH_SHORT).show()
+                }
+            }
 
             val smsPermissionLauncher = rememberLauncherForActivityResult(
                 ActivityResultContracts.RequestMultiplePermissions()
@@ -408,11 +438,69 @@ fun SettingsSheet(
                 }
             }
 
-            Divider(modifier = Modifier.padding(vertical = 4.dp))
+            // Scan Past SMS Section
+            Column(modifier = Modifier.fillMaxWidth().padding(top = 6.dp)) {
+                Text("Scan Past SMS Messages", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                Text("Scan previous banking SMS stored on device to extract transactions.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    listOf(7, 30, 60, 90).forEach { d ->
+                        FilterChip(
+                            selected = scanDaysChoice == d,
+                            onClick = soundClick { scanDaysChoice = d },
+                            label = { Text("${d}d") },
+                        )
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
+                    FilledTonalButton(
+                        onClick = soundClick {
+                            val hasPermission = androidx.core.content.ContextCompat.checkSelfPermission(
+                                context, android.Manifest.permission.READ_SMS
+                            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                            if (hasPermission) {
+                                scope.launch {
+                                    isScanningSms = true
+                                    try {
+                                        val stats = com.moneymanagement.app.sms.SmsSyncManager.scanHistoricalSmsDetailed(context, repository, scanDaysChoice)
+                                        val total = stats.transactionsFound + stats.billsFound
+                                        val msg = if (total > 0) "Found $total new items from SMS!" else "No new transactions found in SMS."
+                                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "Scan error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                                    } finally {
+                                        isScanningSms = false
+                                    }
+                                }
+                            } else {
+                                historicalSmsLauncher.launch(
+                                    arrayOf(
+                                        android.Manifest.permission.READ_SMS,
+                                        android.Manifest.permission.RECEIVE_SMS,
+                                    )
+                                )
+                            }
+                        },
+                        enabled = !isScanningSms,
+                    ) {
+                        if (isScanningSms) {
+                            androidx.compose.material3.CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                        } else {
+                            Icon(Icons.Filled.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Scan ($scanDaysChoice d)")
+                        }
+                    }
+                }
+            }
 
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
             // --- Section: Data Backup & Portability ---
             Text("Data & Backup", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+
 
             Row(
                 modifier = Modifier.fillMaxWidth(),

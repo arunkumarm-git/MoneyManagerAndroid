@@ -27,8 +27,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Sms
@@ -108,9 +109,12 @@ fun SmsInboxScreen(
     val accounts by viewModel.accounts.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val isScanning by viewModel.isScanning.collectAsState()
+    val scanDays by viewModel.selectedScanDays.collectAsState()
     val scanMessage by viewModel.scanMessage.collectAsState()
 
     var editingSms by remember { mutableStateOf<SmsInbox?>(null) }
+
+    val scanDurationOptions = listOf(7, 30, 60, 90)
 
     val smsPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -119,7 +123,7 @@ fun SmsInboxScreen(
                       permissions[Manifest.permission.RECEIVE_SMS] == true
         if (granted) {
             AppSettings.setSmsTrackingEnabled(true)
-            viewModel.scanPastSms(context, days = 30)
+            viewModel.scanPastSms(context, days = scanDays)
         } else {
             Toast.makeText(context, "SMS permission is required to read bank SMS", Toast.LENGTH_SHORT).show()
         }
@@ -157,7 +161,7 @@ fun SmsInboxScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = soundClick(onBack)) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
@@ -174,7 +178,7 @@ fun SmsInboxScreen(
                                 ) == PackageManager.PERMISSION_GRANTED
 
                                 if (hasReadSms) {
-                                    viewModel.scanPastSms(context, days = 30)
+                                    viewModel.scanPastSms(context, days = scanDays)
                                 } else {
                                     smsPermissionLauncher.launch(
                                         arrayOf(
@@ -206,95 +210,167 @@ fun SmsInboxScreen(
             )
         },
     ) { innerPadding ->
-        if (pendingList.isEmpty()) {
-            Box(
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            // Duration selector bar
+            Row(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(24.dp),
-                contentAlignment = Alignment.Center,
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(72.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            Icons.Filled.Sms,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(36.dp),
+                Text(
+                    "Scan range:",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    scanDurationOptions.forEach { days ->
+                        FilterChip(
+                            selected = scanDays == days,
+                            onClick = soundClick { viewModel.setScanDays(days) },
+                            label = { Text("${days}d") },
                         )
-                    }
-                    Text(
-                        "No Pending SMS Transactions",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        "Incoming debit and credit SMS messages from your bank will be detected and listed here for quick review.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    )
-
-                    Button(
-                        onClick = soundClick {
-                            val hasReadSms = ContextCompat.checkSelfPermission(
-                                context, Manifest.permission.READ_SMS
-                            ) == PackageManager.PERMISSION_GRANTED
-
-                            if (hasReadSms) {
-                                viewModel.scanPastSms(context, days = 30)
-                            } else {
-                                smsPermissionLauncher.launch(
-                                    arrayOf(
-                                        Manifest.permission.READ_SMS,
-                                        Manifest.permission.RECEIVE_SMS,
-                                    )
-                                )
-                            }
-                        },
-                        enabled = !isScanning,
-                        modifier = Modifier.padding(top = 8.dp),
-                    ) {
-                        Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(if (isScanning) "Scanning SMS Inbox..." else "Scan Past 30 Days")
                     }
                 }
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(vertical = 12.dp),
-            ) {
-                items(pendingList, key = { it.id }) { sms ->
-                    SmsDraftCard(
-                        sms = sms,
-                        accounts = accounts,
-                        categories = categories,
-                        onApprove = { accId, catId, note ->
-                            viewModel.approveSms(sms, accId, catId, null, note)
-                            Toast.makeText(context, "Transaction logged!", Toast.LENGTH_SHORT).show()
-                        },
-                        onDismiss = {
-                            viewModel.dismissSms(sms.id)
-                        },
-                        onEdit = {
-                            editingSms = sms
-                        },
-                    )
+
+            if (pendingList.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(72.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primaryContainer),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                Icons.Filled.Sms,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(36.dp),
+                            )
+                        }
+                        Text(
+                            "No Pending SMS Transactions",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            "Scan your device SMS inbox for bank debit/credit messages from the last $scanDays days to automatically detect and import your expenses.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        )
+
+                        Button(
+                            onClick = soundClick {
+                                val hasReadSms = ContextCompat.checkSelfPermission(
+                                    context, Manifest.permission.READ_SMS
+                                ) == PackageManager.PERMISSION_GRANTED
+
+                                if (hasReadSms) {
+                                    viewModel.scanPastSms(context, days = scanDays)
+                                } else {
+                                    smsPermissionLauncher.launch(
+                                        arrayOf(
+                                            Manifest.permission.READ_SMS,
+                                            Manifest.permission.RECEIVE_SMS,
+                                        )
+                                    )
+                                }
+                            },
+                            enabled = !isScanning,
+                            modifier = Modifier.padding(top = 8.dp),
+                        ) {
+                            Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(if (isScanning) "Scanning SMS Inbox..." else "Scan Past $scanDays Days SMS")
+                        }
+                    }
+                }
+            } else {
+                // Header action card when items exist
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            "${pendingList.size} pending review",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        TextButton(
+                            onClick = soundClick {
+                                val hasReadSms = ContextCompat.checkSelfPermission(
+                                    context, Manifest.permission.READ_SMS
+                                ) == PackageManager.PERMISSION_GRANTED
+                                if (hasReadSms) {
+                                    viewModel.scanPastSms(context, days = scanDays)
+                                } else {
+                                    smsPermissionLauncher.launch(
+                                        arrayOf(
+                                            Manifest.permission.READ_SMS,
+                                            Manifest.permission.RECEIVE_SMS,
+                                        )
+                                    )
+                                }
+                            },
+                            enabled = !isScanning,
+                        ) {
+                            Icon(Icons.Filled.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Re-scan ($scanDays d)")
+                        }
+                    }
+                }
+
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(vertical = 8.dp),
+                ) {
+                    items(pendingList, key = { it.id }) { sms ->
+                        SmsDraftCard(
+                            sms = sms,
+                            accounts = accounts,
+                            categories = categories,
+                            onApprove = { accId, catId, note ->
+                                viewModel.approveSms(sms, accId, catId, null, note)
+                                Toast.makeText(context, "Transaction logged!", Toast.LENGTH_SHORT).show()
+                            },
+                            onDismiss = {
+                                viewModel.dismissSms(sms.id)
+                            },
+                            onEdit = {
+                                editingSms = sms
+                            },
+                        )
+                    }
                 }
             }
         }
@@ -341,7 +417,7 @@ fun SmsInboxScreen(
             initial = initialRow,
             initialType = sms.type,
             onDismiss = { editingSms = null },
-            onSave = { accountId, type, amount, txnDate, categoryId, toAccountId, note ->
+            onSave = { accountId, _, _, _, categoryId, toAccountId, note ->
                 viewModel.approveSms(
                     sms = sms,
                     accountId = accountId,

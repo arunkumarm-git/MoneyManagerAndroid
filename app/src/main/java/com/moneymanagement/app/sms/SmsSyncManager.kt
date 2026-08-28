@@ -10,18 +10,25 @@ import com.moneymanagement.app.data.nowIso
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+data class SmsScanStats(
+    val messagesScanned: Int = 0,
+    val transactionsFound: Int = 0,
+    val billsFound: Int = 0,
+    val daysScanned: Int = 30,
+)
+
 object SmsSyncManager {
 
     /**
      * Scans the device SMS inbox for financial messages from the last [days] days.
      * Inserts newly parsed transactions into [SmsInbox] as PENDING for user review.
-     * Returns the count of newly added drafts.
+     * Returns detailed [SmsScanStats].
      */
-    suspend fun scanHistoricalSms(
+    suspend fun scanHistoricalSmsDetailed(
         context: Context,
         repository: MoneyRepository,
         days: Int = 30,
-    ): Int = withContext(Dispatchers.IO) {
+    ): SmsScanStats = withContext(Dispatchers.IO) {
         val uri: Uri = Telephony.Sms.Inbox.CONTENT_URI
         val projection = arrayOf(
             Telephony.Sms.Inbox.ADDRESS,
@@ -34,7 +41,9 @@ object SmsSyncManager {
         val selectionArgs = arrayOf(cutoffMillis.toString())
         val sortOrder = "${Telephony.Sms.Inbox.DATE} DESC"
 
-        var importedCount = 0
+        var totalScanned = 0
+        var importedTxns = 0
+        var importedBills = 0
 
         try {
             val cursor: Cursor? = context.contentResolver.query(
@@ -59,6 +68,7 @@ object SmsSyncManager {
                     val date = if (dateIdx >= 0) c.getLong(dateIdx) else System.currentTimeMillis()
 
                     if (body.isBlank()) continue
+                    totalScanned++
 
                     val parsed = SmsParser.parse(address, body, date)
                     if (parsed.isFinancial) {
@@ -94,7 +104,7 @@ object SmsSyncManager {
                             )
 
                             repository.addSmsInbox(draft)
-                            importedCount++
+                            importedTxns++
                         }
                     } else {
                         // Check if it's a Credit Card bill statement
@@ -114,7 +124,7 @@ object SmsSyncManager {
                                     minDue = bill.minDue,
                                     dueDate = bill.dueDate,
                                 )
-                                importedCount++
+                                importedBills++
                             } else {
                                 val cardName = if (bill.cardLast4 != null) "${bill.bankName} Card (..${bill.cardLast4})" else "${bill.bankName} Card"
                                 repository.addCreditCard(
@@ -127,7 +137,7 @@ object SmsSyncManager {
                                     minDue = bill.minDue,
                                     dueDate = bill.dueDate,
                                 )
-                                importedCount++
+                                importedBills++
                             }
                         }
                     }
@@ -137,7 +147,24 @@ object SmsSyncManager {
             // Content provider query failed or permissions denied
         }
 
+        return@withContext SmsScanStats(
+            messagesScanned = totalScanned,
+            transactionsFound = importedTxns,
+            billsFound = importedBills,
+            daysScanned = days,
+        )
+    }
 
-        return@withContext importedCount
+    /**
+     * Backward-compatible helper returning imported transaction count.
+     */
+    suspend fun scanHistoricalSms(
+        context: Context,
+        repository: MoneyRepository,
+        days: Int = 30,
+    ): Int {
+        val stats = scanHistoricalSmsDetailed(context, repository, days)
+        return stats.transactionsFound + stats.billsFound
     }
 }
+

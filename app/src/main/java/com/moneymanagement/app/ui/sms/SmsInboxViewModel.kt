@@ -21,12 +21,16 @@ data class SmsInboxUiState(
     val categories: List<Category> = emptyList(),
     val isScanning: Boolean = false,
     val scanResultCount: Int? = null,
+    val selectedScanDays: Int = 30,
 )
 
 class SmsInboxViewModel(private val repository: MoneyRepository) : ViewModel() {
 
     private val _isScanning = MutableStateFlow(false)
     val isScanning: StateFlow<Boolean> = _isScanning.asStateFlow()
+
+    private val _selectedScanDays = MutableStateFlow(30)
+    val selectedScanDays: StateFlow<Int> = _selectedScanDays.asStateFlow()
 
     private val _scanMessage = MutableStateFlow<String?>(null)
     val scanMessage: StateFlow<String?> = _scanMessage.asStateFlow()
@@ -39,6 +43,10 @@ class SmsInboxViewModel(private val repository: MoneyRepository) : ViewModel() {
 
     val categories: StateFlow<List<Category>> = repository.categories
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun setScanDays(days: Int) {
+        _selectedScanDays.value = days
+    }
 
     fun approveSms(
         sms: SmsInbox,
@@ -97,13 +105,20 @@ class SmsInboxViewModel(private val repository: MoneyRepository) : ViewModel() {
         }
     }
 
-    fun scanPastSms(context: Context, days: Int = 30) {
+    fun scanPastSms(context: Context, days: Int = _selectedScanDays.value) {
         viewModelScope.launch {
             _isScanning.value = true
             _scanMessage.value = null
             try {
-                val count = SmsSyncManager.scanHistoricalSms(context, repository, days)
-                _scanMessage.value = if (count > 0) "Found $count financial transactions!" else "No new transactions found in SMS."
+                val stats = SmsSyncManager.scanHistoricalSmsDetailed(context, repository, days)
+                val totalFound = stats.transactionsFound + stats.billsFound
+                _scanMessage.value = if (totalFound > 0) {
+                    "Scanned ${stats.messagesScanned} SMS (${days}d). Found $totalFound new item${if (totalFound > 1) "s" else ""}!"
+                } else if (stats.messagesScanned > 0) {
+                    "Scanned ${stats.messagesScanned} SMS (${days}d). No new transactions found."
+                } else {
+                    "No SMS found for the past $days days."
+                }
             } catch (e: Exception) {
                 _scanMessage.value = "Scan error: ${e.localizedMessage}"
             } finally {
@@ -116,3 +131,4 @@ class SmsInboxViewModel(private val repository: MoneyRepository) : ViewModel() {
         _scanMessage.value = null
     }
 }
+
