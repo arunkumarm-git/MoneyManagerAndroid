@@ -12,13 +12,13 @@
 }
 
 # Android Architecture Components & Room Database
--keep class * extends androidx.room.RoomDatabase
--keep @androidx.room.Entity class *
--dontwarn androidx.room.paging.**
--keepclassmembers class * {
-    @androidx.room.Dao *;
-    @androidx.room.Entity *;
-}
+-keep class * extends androidx.room.RoomDatabase { *; }
+-keep class androidx.room.** { *; }
+-dontwarn androidx.room.**
+-keep @androidx.room.Dao interface * { *; }
+-keep @androidx.room.Entity class * { *; }
+-keep class com.moneymanagement.app.data.** { *; }
+-dontwarn com.moneymanagement.app.data.**
 
 # WorkManager
 -keep class * extends androidx.work.Worker {

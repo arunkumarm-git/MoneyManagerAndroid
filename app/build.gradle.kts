@@ -16,14 +16,14 @@ val keystoreProperties = Properties().apply {
 
 android {
     namespace = "com.moneymanagement.app"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.moneymanagement.app"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 3
-        versionName = "1.1.0"
+        targetSdk = 36
+        versionCode = 4
+        versionName = "1.2.0"
     }
 
     signingConfigs {
