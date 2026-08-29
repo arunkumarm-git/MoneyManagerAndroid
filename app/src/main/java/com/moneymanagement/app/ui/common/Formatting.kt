@@ -16,7 +16,17 @@ fun formatMoney(value: Double, decimals: Int = 2): String =
 
 fun formatMoneyWithSymbol(value: Double, decimals: Int = 2, masked: Boolean = false): String {
     if (masked) return "${AppSettings.currencySymbol.value} ••••••"
-    return "${AppSettings.currencySymbol.value} ${formatMoney(value, decimals)}"
+    val symbol = AppSettings.currencySymbol.value
+    val absValue = kotlin.math.abs(value)
+    return if (value < 0.0) "-$symbol ${formatMoney(absValue, decimals)}" else "$symbol ${formatMoney(value, decimals)}"
+}
+
+fun formatSignedMoneyWithSymbol(value: Double, decimals: Int = 2, masked: Boolean = false): String {
+    if (masked) return "••••••"
+    val symbol = AppSettings.currencySymbol.value
+    val absValue = kotlin.math.abs(value)
+    val sign = if (value > 0.0) "+" else if (value < 0.0) "-" else ""
+    return if (sign.isNotEmpty()) "$sign$symbol ${formatMoney(absValue, decimals)}" else "$symbol ${formatMoney(0.0, decimals)}"
 }
 
 fun amountColor(type: String): Color = when (type) {
@@ -32,7 +42,8 @@ fun signedAmountText(type: String, amount: Double, decimals: Int = 2, masked: Bo
         "expense" -> "-"
         else -> ""
     }
-    return "$sign ${AppSettings.currencySymbol.value}${formatMoney(amount, decimals)}"
+    val absAmount = kotlin.math.abs(amount)
+    return if (sign.isNotEmpty()) "$sign ${AppSettings.currencySymbol.value}${formatMoney(absAmount, decimals)}" else "${AppSettings.currencySymbol.value}${formatMoney(absAmount, decimals)}"
 }
 
 private val DISPLAY_DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault())

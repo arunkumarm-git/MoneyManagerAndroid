@@ -237,6 +237,8 @@ fun DashboardScreen(
                     totalBalance = state.totalBalance,
                     income = state.monthIncome,
                     expense = state.monthExpense,
+                    netSavings = state.monthNetSavings,
+                    isDeficit = state.isMonthDeficit,
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
             }
@@ -347,6 +349,8 @@ private fun SummaryCard(
     totalBalance: Double,
     income: Double,
     expense: Double,
+    netSavings: Double,
+    isDeficit: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val privacyMode by AppSettings.privacyModeEnabled.collectAsState()
@@ -400,8 +404,34 @@ private fun SummaryCard(
                 style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color.White,
-                modifier = Modifier.padding(top = 4.dp, bottom = 20.dp),
+                modifier = Modifier.padding(top = 4.dp, bottom = 10.dp),
             )
+
+            // Monthly Net Cash Flow Badge
+            Surface(
+                shape = MaterialTheme.shapes.small,
+                color = if (isDeficit) Color(0x33FF5252) else Color(0x3300E676),
+                modifier = Modifier.padding(bottom = 16.dp),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        if (privacyMode) {
+                            "This Month: ••••••"
+                        } else if (isDeficit) {
+                            "🔻 This Month Net: -$currencySymbol ${formatMoney(kotlin.math.abs(netSavings), 0)} (Deficit)"
+                        } else {
+                            "🔺 This Month Net: +$currencySymbol ${formatMoney(netSavings, 0)} (Saved)"
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White,
+                    )
+                }
+            }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -411,6 +441,7 @@ private fun SummaryCard(
                     label = "Income",
                     amount = income,
                     currency = currencySymbol,
+                    prefix = "+",
                     masked = privacyMode,
                     modifier = Modifier.weight(1f),
                 )
@@ -419,6 +450,7 @@ private fun SummaryCard(
                     label = "Expense",
                     amount = expense,
                     currency = currencySymbol,
+                    prefix = "-",
                     masked = privacyMode,
                     modifier = Modifier.weight(1f),
                 )
@@ -433,6 +465,7 @@ private fun MoneyPill(
     label: String,
     amount: Double,
     currency: String,
+    prefix: String = "",
     masked: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -454,7 +487,7 @@ private fun MoneyPill(
         Column(modifier = Modifier.padding(start = 10.dp)) {
             Text(label, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.75f))
             Text(
-                if (masked) "••••" else "$currency ${formatMoney(amount, 0)}",
+                if (masked) "••••" else "$prefix$currency ${formatMoney(amount, 0)}",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,

@@ -56,6 +56,7 @@ import com.moneymanagement.app.ui.common.EmptyState
 import com.moneymanagement.app.ui.common.GenericViewModelFactory
 import com.moneymanagement.app.ui.common.amountColor
 import com.moneymanagement.app.ui.common.formatMoney
+import com.moneymanagement.app.ui.common.formatMoneyWithSymbol
 import com.moneymanagement.app.ui.common.soundClick
 import com.moneymanagement.app.ui.theme.AccountBankEnd
 import com.moneymanagement.app.ui.theme.AccountBankStart
@@ -187,7 +188,7 @@ private fun TotalBalanceHeroCard(total: Double) {
                 color = Color.White.copy(alpha = 0.75f),
             )
             Text(
-                "₹ ${formatMoney(total)}",
+                formatMoneyWithSymbol(total, 2),
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color.White,
@@ -253,7 +254,7 @@ private fun AccountRow(account: Account, balance: Double, onEdit: () -> Unit, on
                     )
                 }
                 Text(
-                    "₹ ${formatMoney(balance)}",
+                    formatMoneyWithSymbol(balance, 2),
                     color = amountColor(if (balance >= 0) "income" else "expense"),
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleSmall,

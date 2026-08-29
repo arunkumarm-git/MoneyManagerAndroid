@@ -178,7 +178,24 @@ object SmsParser {
             return ParsedSmsResult(isFinancial = false, smsHash = smsHash)
         }
 
-        val type = if (isIncome && !isExpense) "income" else "expense"
+        val type = when {
+            isIncome && !isExpense -> "income"
+            isExpense && !isIncome -> "expense"
+            isIncome && isExpense -> {
+                val firstExpenseIdx = EXPENSE_PATTERNS.mapNotNull {
+                    val m = it.matcher(normalizedBody)
+                    if (m.find()) m.start() else null
+                }.minOrNull() ?: Int.MAX_VALUE
+
+                val firstIncomeIdx = INCOME_PATTERNS.mapNotNull {
+                    val m = it.matcher(normalizedBody)
+                    if (m.find()) m.start() else null
+                }.minOrNull() ?: Int.MAX_VALUE
+
+                if (firstIncomeIdx < firstExpenseIdx) "income" else "expense"
+            }
+            else -> "expense"
+        }
 
         // 4. Extract Account / Card reference
         var accountRef: String? = null

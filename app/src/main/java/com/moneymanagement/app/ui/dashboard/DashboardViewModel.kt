@@ -19,6 +19,8 @@ data class DashboardUiState(
     val totalBalance: Double = 0.0,
     val monthIncome: Double = 0.0,
     val monthExpense: Double = 0.0,
+    val monthNetSavings: Double = 0.0,
+    val isMonthDeficit: Boolean = false,
     val budgetAlerts: List<BudgetStatusRow> = emptyList(),
     val recentTransactions: List<TransactionRow> = emptyList(),
     val accounts: List<Account> = emptyList(),
@@ -34,12 +36,15 @@ class DashboardViewModel(private val repository: MoneyRepository) : ViewModel() 
         val today = LocalDate.now()
         val total = Calculations.totalBalance(accounts, txns)
         val (income, expense) = Calculations.monthSummary(txns, today.year, today.monthValue)
+        val netSavings = income - expense
         val budgetStatus = Calculations.budgetStatus(categories, txns, today.year, today.monthValue)
         val alerts = budgetStatus.filter { it.budget != null && it.budget > 0 && it.spent / it.budget >= 0.8 }
         DashboardUiState(
             totalBalance = total,
             monthIncome = income,
             monthExpense = expense,
+            monthNetSavings = netSavings,
+            isMonthDeficit = expense > income,
             budgetAlerts = alerts,
             recentTransactions = txns.take(8),
             accounts = accounts,
