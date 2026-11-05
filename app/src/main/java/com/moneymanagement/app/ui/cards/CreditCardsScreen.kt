@@ -26,6 +26,8 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
@@ -103,6 +105,7 @@ fun CreditCardsScreen(
     val accounts by viewModel.accounts.collectAsState()
 
     var showAddDialog by remember { mutableStateOf(false) }
+    var showHowAlertsWorkDialog by remember { mutableStateOf(false) }
     var editingCard by remember { mutableStateOf<CreditCard?>(null) }
     var deletingCard by remember { mutableStateOf<CreditCard?>(null) }
     var payingCard by remember { mutableStateOf<CreditCard?>(null) }
@@ -114,6 +117,11 @@ fun CreditCardsScreen(
                 navigationIcon = {
                     IconButton(onClick = soundClick(onBack)) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = soundClick { showHowAlertsWorkDialog = true }) {
+                        Icon(Icons.Filled.Info, contentDescription = "How Alerts Work")
                     }
                 },
             )
@@ -136,7 +144,7 @@ fun CreditCardsScreen(
                 EmptyState(
                     icon = Icons.Filled.CreditCard,
                     title = "No Credit Cards Tracked",
-                    subtitle = "Add your credit cards to receive bill due date alerts, utilization warnings, and automated SMS bill detection.",
+                    subtitle = "Add your credit cards to receive bill due date alerts, utilization warnings, and log expenses directly with your credit cards.",
                 )
             }
         } else {
@@ -147,6 +155,46 @@ fun CreditCardsScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
+                // Informational banner explaining alerts and expense tracking
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+                        ),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                Icons.Filled.NotificationsActive,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp),
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    "Automatic Bill & Due Alerts",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                )
+                                Text(
+                                    "Alerts notify 3d prior, 1d prior, & due date. Expenses paid with credit cards update balances automatically.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f),
+                                )
+                            }
+                            TextButton(onClick = soundClick { showHowAlertsWorkDialog = true }) {
+                                Text("Details", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+
                 items(cards, key = { it.id }) { card ->
                     CreditCardItem(
                         card = card,
@@ -210,6 +258,113 @@ fun CreditCardsScreen(
                 viewModel.markBillPaid(card.id, true, fromAccountId, amount)
                 payingCard = null
                 Toast.makeText(context, "Bill payment logged successfully!", Toast.LENGTH_SHORT).show()
+            },
+        )
+    }
+
+    if (showHowAlertsWorkDialog) {
+        AlertDialog(
+            onDismissRequest = { showHowAlertsWorkDialog = false },
+            icon = {
+                Icon(
+                    Icons.Filled.NotificationsActive,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            },
+            title = {
+                Text("Credit Card Alerts & Expenses", fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text(
+                        "Here is how credit card alerts and expense tracking work:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                    )
+
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Text(
+                                "📅 Due Date Notifications",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                            Text("• 3 Days Before: Early reminder to prepare payment", style = MaterialTheme.typography.bodySmall)
+                            Text("• 1 Day Before: Priority alert for tomorrow's due date", style = MaterialTheme.typography.bodySmall)
+                            Text("• Due Date: Urgent notification to pay today", style = MaterialTheme.typography.bodySmall)
+                            Text("• Overdue: Alerts continue until marked as paid", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Text(
+                                "💳 Credit Card Expense Tracking",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                            Text(
+                                "• In the Add Expense dialog, choose 'Pay with: Credit Card'.",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                            Text(
+                                "• The expense is categorized and your card's used balance increases automatically.",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                            Text(
+                                "• Bank balances stay intact until you pay the card bill via 'Pay Bill'.",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Text(
+                                "⚠️ Utilization Alert (>70%)",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = ExpenseRed,
+                            )
+                            Text(
+                                "Triggered automatically when used balance exceeds 70% of credit limit to protect your credit score.",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(onClick = soundClick { showHowAlertsWorkDialog = false }) {
+                    Text("Got it")
+                }
             },
         )
     }

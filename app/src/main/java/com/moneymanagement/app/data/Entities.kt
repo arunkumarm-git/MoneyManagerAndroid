@@ -29,14 +29,16 @@ data class Category(
         ForeignKey(entity = Account::class, parentColumns = ["id"], childColumns = ["accountId"], onDelete = ForeignKey.CASCADE),
         ForeignKey(entity = Account::class, parentColumns = ["id"], childColumns = ["toAccountId"], onDelete = ForeignKey.SET_NULL),
         ForeignKey(entity = Category::class, parentColumns = ["id"], childColumns = ["categoryId"], onDelete = ForeignKey.SET_NULL),
+        ForeignKey(entity = CreditCard::class, parentColumns = ["id"], childColumns = ["creditCardId"], onDelete = ForeignKey.SET_NULL),
     ],
-    indices = [Index("accountId"), Index("toAccountId"), Index("categoryId")],
+    indices = [Index("accountId"), Index("toAccountId"), Index("categoryId"), Index("creditCardId")],
 )
 data class Transaction(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val accountId: Long,
+    val accountId: Long?,       // null when paid by credit card
     val toAccountId: Long?,
     val categoryId: Long?,
+    val creditCardId: Long? = null,    // set when expense is charged to a credit card
     val type: String,
     val amount: Double,
     val note: String?,
@@ -112,5 +114,26 @@ data class CreditCard(
     val linkedAccountId: Long? = null,
     val createdAt: String,
 )
+
+@Entity(
+    tableName = "emergency_funds",
+    foreignKeys = [
+        ForeignKey(entity = Account::class, parentColumns = ["id"], childColumns = ["linkedAccountId"], onDelete = ForeignKey.SET_NULL),
+    ],
+    indices = [Index("linkedAccountId")],
+)
+data class EmergencyFundAllocation(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,                    // e.g. "HDFC High-Interest Savings", "Parag Parikh Liquid Fund", "Cash in locker"
+    val institution: String,             // e.g. "HDFC Bank", "Mutual Fund AMC", "Cash", "SBI Bank"
+    val storageType: String,             // "bank_savings", "liquid_fund", "fixed_deposit", "cash", "other"
+    val amount: Double,                  // Amount stored
+    val returnRate: Double? = null,      // e.g. 7.1% p.a.
+    val notes: String? = null,           // e.g. "Instant ATM/UPI access", "T+1 redemption limit", "Home safe"
+    val linkedAccountId: Long? = null,   // Optional reference to an Account in the app
+    val createdAt: String,
+    val updatedAt: String,
+)
+
 
 

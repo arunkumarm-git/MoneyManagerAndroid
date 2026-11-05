@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -17,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.moneymanagement.app.data.Account
 import com.moneymanagement.app.data.Category
+import com.moneymanagement.app.data.CreditCard
 import com.moneymanagement.app.data.TransactionRow
 import com.moneymanagement.app.ui.common.AmountField
 import com.moneymanagement.app.ui.common.AppDatePickerField
@@ -26,36 +28,45 @@ import com.moneymanagement.app.ui.common.TypeSegmentedControl
 import com.moneymanagement.app.ui.common.soundClick
 import java.time.LocalDate
 
-private val TXN_TYPES = listOf("expense", "income", "transfer")
+// Transfer has been removed – expense and income only
+private val TXN_TYPES = listOf("expense", "income")
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionDialog(
     accounts: List<Account>,
     categories: List<Category>,
+    creditCards: List<CreditCard> = emptyList(),
     initial: TransactionRow?,
     onDismiss: () -> Unit,
     onSave: (
-        accountId: Long,
+        accountId: Long?,
         type: String,
         amount: Double,
         txnDate: String,
         categoryId: Long?,
         toAccountId: Long?,
+        creditCardId: Long?,
         note: String,
     ) -> Unit,
     initialType: String = "expense",
 ) {
-    var type by remember { mutableStateOf(initial?.txn?.type ?: initialType) }
+    var type by remember { mutableStateOf(initial?.txn?.type?.let { if (it == "transfer") "expense" else it } ?: initialType) }
     var amountText by remember { mutableStateOf(initial?.txn?.amount?.toString() ?: "") }
     var note by remember { mutableStateOf(initial?.txn?.note ?: "") }
     var txnDate by remember {
         mutableStateOf(initial?.txn?.txnDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() } ?: LocalDate.now())
     }
     var accountId by remember { mutableStateOf(initial?.txn?.accountId ?: accounts.firstOrNull()?.id) }
-    var toAccountId by remember { mutableStateOf(initial?.txn?.toAccountId ?: accounts.getOrNull(1)?.id) }
     var categoryId by remember {
         mutableStateOf(initial?.txn?.categoryId ?: categories.firstOrNull { it.type == type }?.id)
     }
+
+    // Payment source: "account" (Cash/Bank) or "card" (Credit Card)
+    val initialCCId = initial?.txn?.creditCardId
+    var paySource by remember { mutableStateOf(if (initialCCId != null) "card" else "account") }
+    var creditCardId by remember { mutableStateOf(initialCCId ?: creditCards.firstOrNull()?.id) }
+
     var errorText by remember { mutableStateOf<String?>(null) }
 
     val categoryOptions = categories.filter { it.type == type }
@@ -71,19 +82,13 @@ fun TransactionDialog(
             selected = type,
             onSelect = { newType ->
                 type = newType
-                if (newType != "transfer" && categoryOptionFor(categories, newType, categoryId) == null) {
+                if (categoryOptionFor(categories, newType, categoryId) == null) {
                     categoryId = categories.firstOrNull { it.type == newType }?.id
                 }
+                // Credit card payment only makes sense for expenses
+                if (newType != "expense") paySource = "account"
             },
         )
-
-        if (type == "transfer") {
-            Text(
-                text = "Move money between your accounts (e.g. Bank to Cash) without affecting expense reports.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
 
         AmountField(
             label = "Amount",
@@ -93,31 +98,50 @@ fun TransactionDialog(
             isError = errorText != null,
         )
 
-        DropdownField(
-            label = if (type == "transfer") "From account" else "Account",
-            options = accounts.map { it.name },
-            selected = accounts.find { it.id == accountId }?.name ?: "",
-            onSelect = { name -> accountId = accounts.find { it.name == name }?.id },
-            modifier = Modifier.fillMaxWidth(),
-        )
+        // Payment source toggle (only for expenses and when credit cards exist)
+        if (type == "expense" && creditCards.isNotEmpty()) {
+            Text(
+                "Pay with",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            TypeSegmentedControl(
+                options = listOf("account", "card"),
+                selected = paySource,
+                onSelect = { paySource = it },
+                labels = mapOf("account" to "Cash / Bank", "card" to "Credit Card"),
+            )
+        }
 
-        if (type == "transfer") {
+        // Show account OR credit card picker based on paySource
+        if (type != "expense" || paySource == "account") {
             DropdownField(
-                label = "To account",
+                label = "Account",
                 options = accounts.map { it.name },
-                selected = accounts.find { it.id == toAccountId }?.name ?: "",
-                onSelect = { name -> toAccountId = accounts.find { it.name == name }?.id },
+                selected = accounts.find { it.id == accountId }?.name ?: "",
+                onSelect = { name -> accountId = accounts.find { it.name == name }?.id },
                 modifier = Modifier.fillMaxWidth(),
             )
         } else {
+            // paySource == "card"
             DropdownField(
-                label = "Category",
-                options = categoryOptions.map { it.name },
-                selected = categoryOptions.find { it.id == categoryId }?.name ?: "",
-                onSelect = { name -> categoryId = categoryOptions.find { it.name == name }?.id },
+                label = "Credit Card",
+                options = creditCards.map { "${it.cardName} (${it.bankName})" },
+                selected = creditCards.find { it.id == creditCardId }?.let { "${it.cardName} (${it.bankName})" } ?: "",
+                onSelect = { label ->
+                    creditCardId = creditCards.find { "${it.cardName} (${it.bankName})" == label }?.id
+                },
                 modifier = Modifier.fillMaxWidth(),
             )
         }
+
+        DropdownField(
+            label = "Category",
+            options = categoryOptions.map { it.name },
+            selected = categoryOptions.find { it.id == categoryId }?.name ?: "",
+            onSelect = { name -> categoryId = categoryOptions.find { it.name == name }?.id },
+            modifier = Modifier.fillMaxWidth(),
+        )
 
         AppDatePickerField(
             label = "Date",
@@ -145,21 +169,25 @@ fun TransactionDialog(
             Button(
                 onClick = soundClick {
                     val amount = amountText.toDoubleOrNull()
-                    val accId = accountId
+                    val usingCard = type == "expense" && paySource == "card" && creditCards.isNotEmpty()
+                    val accId = if (usingCard) null else accountId
+                    val ccId = if (usingCard) creditCardId else null
+
                     errorText = when {
-                        accId == null -> "Add an account first"
                         amount == null || amount <= 0 -> "Enter a valid amount"
-                        type == "transfer" && (toAccountId == null || toAccountId == accId) -> "Choose a different destination account"
+                        !usingCard && accId == null -> "Add an account first"
+                        usingCard && ccId == null -> "Select a credit card"
                         else -> null
                     }
-                    if (errorText == null && amount != null && accId != null) {
+                    if (errorText == null && amount != null) {
                         onSave(
                             accId,
                             type,
                             amount,
                             txnDate.toString(),
-                            if (type == "transfer") null else categoryId,
-                            if (type == "transfer") toAccountId else null,
+                            categoryId,
+                            null,       // toAccountId always null (transfer removed)
+                            ccId,
                             note.trim(),
                         )
                         dismiss()

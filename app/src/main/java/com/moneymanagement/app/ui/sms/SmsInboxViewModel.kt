@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.moneymanagement.app.data.Account
 import com.moneymanagement.app.data.Category
+import com.moneymanagement.app.data.CreditCard
 import com.moneymanagement.app.data.MoneyRepository
 import com.moneymanagement.app.data.SmsInbox
 import com.moneymanagement.app.sms.SmsSyncManager
@@ -44,16 +45,21 @@ class SmsInboxViewModel(private val repository: MoneyRepository) : ViewModel() {
     val categories: StateFlow<List<Category>> = repository.categories
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val creditCards: StateFlow<List<CreditCard>> = repository.creditCards
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     fun setScanDays(days: Int) {
         _selectedScanDays.value = days
     }
 
     fun approveSms(
         sms: SmsInbox,
-        accountId: Long,
+        accountId: Long?,
         categoryId: Long?,
         toAccountId: Long? = null,
         note: String? = null,
+        creditCardId: Long? = null,
+        overrideType: String? = null,
     ) {
         viewModelScope.launch {
             repository.approveSms(
@@ -61,10 +67,11 @@ class SmsInboxViewModel(private val repository: MoneyRepository) : ViewModel() {
                 accountId = accountId,
                 categoryId = categoryId,
                 toAccountId = toAccountId,
-                type = sms.type,
+                type = overrideType ?: sms.type,
                 amount = sms.amount,
                 txnDate = sms.txnDate,
                 note = note ?: sms.merchantOrNote ?: "SMS Transaction",
+                creditCardId = creditCardId,
             )
         }
     }

@@ -17,8 +17,9 @@ import androidx.room.migration.Migration
         SavingsGoal::class,
         SmsInbox::class,
         CreditCard::class,
+        EmergencyFundAllocation::class,
     ],
-    version = 4,
+    version = 6,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -29,6 +30,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun savingsGoalDao(): SavingsGoalDao
     abstract fun smsInboxDao(): SmsInboxDao
     abstract fun creditCardDao(): CreditCardDao
+    abstract fun emergencyFundDao(): EmergencyFundDao
 
     companion object {
         @Volatile private var instance: AppDatabase? = null
@@ -128,6 +130,68 @@ abstract class AppDatabase : RoomDatabase() {
                 )
             }
         }
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Drop any temporary table from previously failed attempts
+                db.execSQL("DROP TABLE IF EXISTS `transactions_new`")
+
+                // Recreate transactions with nullable accountId + new creditCardId column
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `transactions_new` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `accountId` INTEGER,
+                        `toAccountId` INTEGER,
+                        `categoryId` INTEGER,
+                        `creditCardId` INTEGER,
+                        `type` TEXT NOT NULL,
+                        `amount` REAL NOT NULL,
+                        `note` TEXT,
+                        `txnDate` TEXT NOT NULL,
+                        `createdAt` TEXT NOT NULL,
+                        FOREIGN KEY(`accountId`) REFERENCES `accounts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
+                        FOREIGN KEY(`toAccountId`) REFERENCES `accounts`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL,
+                        FOREIGN KEY(`categoryId`) REFERENCES `categories`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL,
+                        FOREIGN KEY(`creditCardId`) REFERENCES `credit_cards`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("INSERT INTO `transactions_new` SELECT `id`, `accountId`, `toAccountId`, `categoryId`, NULL, `type`, `amount`, `note`, `txnDate`, `createdAt` FROM `transactions`")
+                db.execSQL("DROP TABLE `transactions`")
+                db.execSQL("ALTER TABLE `transactions_new` RENAME TO `transactions`")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_accountId` ON `transactions`(`accountId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_toAccountId` ON `transactions`(`toAccountId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_categoryId` ON `transactions`(`categoryId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_creditCardId` ON `transactions`(`creditCardId`)")
+            }
+        }
+
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `emergency_funds` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `institution` TEXT NOT NULL,
+                        `storageType` TEXT NOT NULL,
+                        `amount` REAL NOT NULL,
+                        `returnRate` REAL,
+                        `notes` TEXT,
+                        `linkedAccountId` INTEGER,
+                        `createdAt` TEXT NOT NULL,
+                        `updatedAt` TEXT NOT NULL,
+                        FOREIGN KEY(`linkedAccountId`) REFERENCES `accounts`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    CREATE INDEX IF NOT EXISTS `index_emergency_funds_linkedAccountId` ON `emergency_funds` (`linkedAccountId`)
+                    """.trimIndent()
+                )
+            }
+        }
 
         fun getInstance(context: Context): AppDatabase =
             instance ?: synchronized(this) {
@@ -136,7 +200,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "money_manager.db",
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 .fallbackToDestructiveMigration()
                 .addCallback(object : Callback() {
                     override fun onOpen(db: SupportSQLiteDatabase) {

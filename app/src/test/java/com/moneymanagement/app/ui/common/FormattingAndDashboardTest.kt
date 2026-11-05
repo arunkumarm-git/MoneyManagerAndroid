@@ -82,4 +82,25 @@ class FormattingAndDashboardTest {
         assertEquals("expense", parsed.type)
         assertEquals(1500.0, parsed.amount, 0.001)
     }
+
+    @Test
+    fun testAccountBalanceWithNegativeAmountHandling() {
+        val account = Account(id = 1L, name = "Bank Account", type = "bank", initialBalance = 10000.0, createdAt = "2026-08-01T00:00:00Z")
+        val txns = listOf(
+            TransactionRow(
+                txn = Transaction(id = 1, accountId = 1, toAccountId = null, categoryId = 1, type = "expense", amount = -2500.0, note = "Expense with negative amount", txnDate = "2026-08-02", createdAt = "2026-08-02T10:00:00Z"),
+                categoryName = "Food",
+                accountName = "Bank Account",
+                toAccountName = null,
+            )
+        )
+
+        val balance = Calculations.accountBalance(account, txns)
+        // Should subtract 2500, resulting in 7500, not add 2500
+        assertEquals(7500.0, balance, 0.001)
+
+        val (income, expense) = Calculations.monthSummary(txns, 2026, 8)
+        assertEquals(0.0, income, 0.001)
+        assertEquals(2500.0, expense, 0.001)
+    }
 }

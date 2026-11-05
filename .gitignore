@@ -44,5 +44,9 @@ captures/
 # Claude assistant local file
 .claude
 
+# Local agent skills and storage
+SKILLS/
+.agent/
+
 # Kotlin
 *.kotlin_module

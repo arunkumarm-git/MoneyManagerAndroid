@@ -68,15 +68,16 @@ interface TransactionDao {
         """
         UPDATE transactions
         SET accountId=:accountId, toAccountId=:toAccountId, categoryId=:categoryId,
-            type=:type, amount=:amount, note=:note, txnDate=:txnDate
+            creditCardId=:creditCardId, type=:type, amount=:amount, note=:note, txnDate=:txnDate
         WHERE id=:id
         """
     )
     suspend fun update(
         id: Long,
-        accountId: Long,
+        accountId: Long?,
         toAccountId: Long?,
         categoryId: Long?,
+        creditCardId: Long?,
         type: String,
         amount: Double,
         note: String?,
@@ -88,11 +89,13 @@ interface TransactionDao {
 
     @Query(
         """
-        SELECT t.*, c.name AS categoryName, a.name AS accountName, ta.name AS toAccountName
+        SELECT t.*, c.name AS categoryName, a.name AS accountName, ta.name AS toAccountName,
+               cc.cardName AS creditCardName
         FROM transactions t
         LEFT JOIN categories c ON c.id = t.categoryId
         LEFT JOIN accounts a ON a.id = t.accountId
         LEFT JOIN accounts ta ON ta.id = t.toAccountId
+        LEFT JOIN credit_cards cc ON cc.id = t.creditCardId
         ORDER BY t.txnDate DESC, t.id DESC
         """
     )
@@ -242,6 +245,9 @@ interface CreditCardDao {
     @Query("UPDATE credit_cards SET isPaid=:isPaid WHERE id=:id")
     suspend fun updatePaidStatus(id: Long, isPaid: Boolean)
 
+    @Query("UPDATE credit_cards SET currentBalance = currentBalance + :delta WHERE id=:id")
+    suspend fun addToBalance(id: Long, delta: Double)
+
     @Query("DELETE FROM credit_cards WHERE id=:id")
     suspend fun delete(id: Long)
 
@@ -260,5 +266,60 @@ interface CreditCardDao {
     @Query("SELECT * FROM credit_cards WHERE isPaid = 0 AND totalDue > 0 AND dueDate IS NOT NULL ORDER BY dueDate ASC")
     suspend fun getPendingBills(): List<CreditCard>
 }
+
+@Dao
+interface EmergencyFundDao {
+    @Insert
+    suspend fun insert(allocation: EmergencyFundAllocation): Long
+
+    @Insert
+    suspend fun insertAll(list: List<EmergencyFundAllocation>)
+
+    @Query(
+        """
+        UPDATE emergency_funds
+        SET name=:name, institution=:institution, storageType=:storageType,
+            amount=:amount, returnRate=:returnRate, notes=:notes,
+            linkedAccountId=:linkedAccountId, updatedAt=:updatedAt
+        WHERE id=:id
+        """
+    )
+    suspend fun update(
+        id: Long,
+        name: String,
+        institution: String,
+        storageType: String,
+        amount: Double,
+        returnRate: Double?,
+        notes: String?,
+        linkedAccountId: Long?,
+        updatedAt: String,
+    )
+
+    @Query("UPDATE emergency_funds SET amount=:amount, updatedAt=:updatedAt WHERE id=:id")
+    suspend fun updateAmount(id: Long, amount: Double, updatedAt: String)
+
+    @Query("UPDATE emergency_funds SET amount = amount + :delta, updatedAt=:updatedAt WHERE id=:id")
+    suspend fun addToAmount(id: Long, delta: Double, updatedAt: String)
+
+    @Query("DELETE FROM emergency_funds WHERE id=:id")
+    suspend fun delete(id: Long)
+
+    @Query("SELECT * FROM emergency_funds ORDER BY amount DESC, id ASC")
+    fun observeAll(): Flow<List<EmergencyFundAllocation>>
+
+    @Query("SELECT * FROM emergency_funds ORDER BY id ASC")
+    suspend fun getAll(): List<EmergencyFundAllocation>
+
+    @Query("SELECT SUM(amount) FROM emergency_funds")
+    fun observeTotalSaved(): Flow<Double?>
+
+    @Query("DELETE FROM emergency_funds")
+    suspend fun deleteAll()
+
+    @Query("SELECT COUNT(*) FROM emergency_funds")
+    suspend fun count(): Int
+}
+
 
 

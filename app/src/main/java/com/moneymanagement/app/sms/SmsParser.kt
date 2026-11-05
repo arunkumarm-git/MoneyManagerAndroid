@@ -38,16 +38,24 @@ object SmsParser {
         Pattern.compile("(?i)\\b(do\\s*not\\s*share|never\\s*share|valid\\s*for\\s*\\d+\\s*(mins|min|seconds|sec))\\b"),
         Pattern.compile("(?i)\\b(congratulations|congrats|win\\b|winner|claim\\s*your|loan\\s*approved|pre-approved|apply\\s*now|flat\\s*\\d+%\\s*off)\\b"),
         Pattern.compile("(?i)\\b(due\\s*date|bill\\s*generated|statement\\s*is\\s*ready|total\\s*due|minimum\\s*due)\\b"), // Bill notices (not actual charge yet)
+        Pattern.compile("(?i)\\b(activate\\s*(?:upi|autopay|card|service|offer|now)?|register\\s*(?:now|here)|sign\\s*up|subscribe\\s*now|opt[\\s-]*in)\\b"),
+        Pattern.compile("(?i)\\b(?:receive|get|earn|win|stand\\s*a\\s*chance)\\s+(?:up\\s*to\\s+|upto\\s+)?(?:rs\\.?|inr|₹)?\\s*[0-9]+.*(?:%|cashback|reward|off|discount|voucher|coupon)\\b"),
+        Pattern.compile("(?i)\\b(?:and\\s*receive|and\\s*get)\\s+(?:up\\s*to\\s+|upto\\s+)?(?:rs\\.?|inr|₹)?\\s*[0-9]+.*(?:cashback|reward|discount|off|voucher|coupon)?\\b"),
+        Pattern.compile("(?i)\\b(avail\\s+(?:this|the)?\\s*offer|offer\\s*valid|exclusive\\s*offer|special\\s*offer|limited\\s*period\\s*offer|cashback\\s*offer|cashback\\s*\\(one\\s*time\\))\\b"),
+        Pattern.compile("(?i)\\b(?:cashback|reward|discount|voucher|coupon)\\s*(?:offer|code|points|worth)\\b"),
+        Pattern.compile("(?i)\\b(use\\s*code|promo\\s*code|coupon\\s*code|discount\\s*code|voucher\\s*code)\\b"),
+        Pattern.compile("(?i)\\b(pre[\\s-]*qualified|instant\\s*loan|credit\\s*card\\s*offer|upgrade\\s*your\\s*card|increase\\s*your\\s*limit|personal\\s*loan)\\b"),
     )
 
     // Expense indicator words
     private val EXPENSE_PATTERNS = listOf(
-        Pattern.compile("(?i)\\b(debited\\s*(?:by|with|for|from)?|spent|paid\\s*(?:to)?|sent\\s*(?:to)?|transferred\\s*to|transfer\\s*to|withdrawn|withdrawal|purchase(?:d)?\\s*at|charged|pos\\s*txn|txn\\s*of)\\b"),
+        Pattern.compile("(?i)\\b(debited\\s*(?:by|with|for|from)?|spent|paid\\s*(?:to)?|sent\\s*to\\s*(?!your\\s*(?:a\\/c|account))|transferred\\s*to\\s*(?!your\\s*(?:a\\/c|account))|transfer\\s*to\\s*(?!your\\s*(?:a\\/c|account))|withdrawn|withdrawal|purchase(?:d)?\\s*at|charged)\\b"),
     )
 
     // Income indicator words
     private val INCOME_PATTERNS = listOf(
-        Pattern.compile("(?i)\\b(credited\\s*(?:by|with|to|from)?|received\\s*(?:from)?|deposited\\s*(?:in|to)?|refund(?:ed)?|cashback\\s*(?:of|received)?|salary\\s*(?:credited)?)\\b"),
+        Pattern.compile("(?i)\\b(credited\\s*(?:by|with|to|from)?|deposited\\s*(?:in|to)?|salary\\s*(?:credited)?|(?:cashback|refund)\\s*(?:of\\s+[^.]+)?\\s*credited|credited\\s*(?:as)?\\s*(?:cashback|refund)|refunded\\s*(?:to)?|credit\\s*of\\s*(?:rs\\.?|inr|₹)|transferred\\s*to\\s*your\\s*(?:a\\/c|account)|sent\\s*to\\s*your\\s*(?:a\\/c|account))\\b"),
+        Pattern.compile("(?i)\\b(?:has\\s+)?received\\s+(?:from|inr|rs\\.?|₹)\\b"),
     )
 
     // Amount extraction regexes
@@ -132,6 +140,11 @@ object SmsParser {
         // Generate consistent unique hash
         val smsHash = generateHash("$sender:$normalizedBody:${timestampMillis / 60000}") // minute-bucketed to avoid sub-second drift
 
+        // Filter out promotional sender routes (TRAI sender headers ending with -P or PROMO)
+        if (sender.endsWith("-P", ignoreCase = true) || sender.contains("PROMO", ignoreCase = true)) {
+            return ParsedSmsResult(isFinancial = false, smsHash = smsHash)
+        }
+
         // 1. Filter out OTP / Spam / Promotional SMS
         for (pattern in OTP_OR_SPAM_PATTERNS) {
             if (pattern.matcher(normalizedBody).find()) {
@@ -182,17 +195,28 @@ object SmsParser {
             isIncome && !isExpense -> "income"
             isExpense && !isIncome -> "expense"
             isIncome && isExpense -> {
-                val firstExpenseIdx = EXPENSE_PATTERNS.mapNotNull {
-                    val m = it.matcher(normalizedBody)
-                    if (m.find()) m.start() else null
-                }.minOrNull() ?: Int.MAX_VALUE
+                // Disambiguate when both income and expense patterns matched:
+                // Check if account has an explicit credit action vs an explicit debit action
+                val isExplicitCredit = Pattern.compile("(?i)\\b(is\\s*credited|credited\\s*(?:by|with|to|from)|salary\\s*credited|deposited\\s*(?:in|to)|refund(?:ed)?\\s*credited|credit\\s*of\\s*(?:rs\\.?|inr|₹)|transferred\\s*to\\s*your\\s*(?:a\\/c|account))\\b").matcher(normalizedBody).find()
+                val isExplicitDebit = Pattern.compile("(?i)\\b(is\\s*debited|debited\\s*(?:by|with|for|from)|spent|paid\\s*to|withdrawn|purchase(?:d)?\\s*at|charged)\\b").matcher(normalizedBody).find()
 
-                val firstIncomeIdx = INCOME_PATTERNS.mapNotNull {
-                    val m = it.matcher(normalizedBody)
-                    if (m.find()) m.start() else null
-                }.minOrNull() ?: Int.MAX_VALUE
+                if (isExplicitCredit && !isExplicitDebit) {
+                    "income"
+                } else if (isExplicitDebit && !isExplicitCredit) {
+                    "expense"
+                } else {
+                    val firstExpenseIdx = EXPENSE_PATTERNS.mapNotNull {
+                        val m = it.matcher(normalizedBody)
+                        if (m.find()) m.start() else null
+                    }.minOrNull() ?: Int.MAX_VALUE
 
-                if (firstIncomeIdx < firstExpenseIdx) "income" else "expense"
+                    val firstIncomeIdx = INCOME_PATTERNS.mapNotNull {
+                        val m = it.matcher(normalizedBody)
+                        if (m.find()) m.start() else null
+                    }.minOrNull() ?: Int.MAX_VALUE
+
+                    if (firstIncomeIdx < firstExpenseIdx) "income" else "expense"
+                }
             }
             else -> "expense"
         }

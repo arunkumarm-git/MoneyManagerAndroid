@@ -108,7 +108,6 @@ class ReportsViewModel(private val repository: MoneyRepository) : ViewModel() {
         val trendPoints = Calculations.calculateTrend(
             txns = txns,
             preset = dates.preset,
-            startDate = start,
             endDate = end,
             viewYear = dates.year,
             viewMonth = dates.month,

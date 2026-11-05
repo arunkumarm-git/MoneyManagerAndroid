@@ -13,6 +13,7 @@ class MoneyRepository(private val db: AppDatabase) {
     private val savingsGoalDao = db.savingsGoalDao()
     private val smsInboxDao = db.smsInboxDao()
     private val creditCardDao = db.creditCardDao()
+    private val emergencyFundDao = db.emergencyFundDao()
 
     val accounts: Flow<List<Account>> = accountDao.observeAll()
     val categories: Flow<List<Category>> = categoryDao.observeAll()
@@ -23,6 +24,8 @@ class MoneyRepository(private val db: AppDatabase) {
     val pendingSmsCount: Flow<Int> = smsInboxDao.countPending()
     val creditCards: Flow<List<CreditCard>> = creditCardDao.observeAll()
     val upcomingCreditCardBills: Flow<List<CreditCard>> = creditCardDao.observeUpcomingBills()
+    val emergencyFunds: Flow<List<EmergencyFundAllocation>> = emergencyFundDao.observeAll()
+    val totalEmergencyFundSaved: Flow<Double?> = emergencyFundDao.observeTotalSaved()
 
 
     suspend fun seedDefaultsIfNeeded() {
@@ -68,36 +71,46 @@ class MoneyRepository(private val db: AppDatabase) {
 
     // --- Transactions ---
     suspend fun addTransaction(
-        accountId: Long,
+        accountId: Long?,
         type: String,
         amount: Double,
         txnDate: String,
         categoryId: Long?,
         toAccountId: Long?,
+        creditCardId: Long? = null,
         note: String,
-    ): Long = transactionDao.insert(
-        Transaction(
-            accountId = accountId,
-            toAccountId = toAccountId,
-            categoryId = categoryId,
-            type = type,
-            amount = amount,
-            note = note,
-            txnDate = txnDate,
-            createdAt = nowIso(),
+    ): Long {
+        val id = transactionDao.insert(
+            Transaction(
+                accountId = accountId,
+                toAccountId = toAccountId,
+                categoryId = categoryId,
+                creditCardId = creditCardId,
+                type = type,
+                amount = amount,
+                note = note,
+                txnDate = txnDate,
+                createdAt = nowIso(),
+            )
         )
-    )
+        // Auto-increment credit card balance when an expense is charged to the card
+        if (creditCardId != null && type == "expense") {
+            creditCardDao.addToBalance(creditCardId, amount)
+        }
+        return id
+    }
 
     suspend fun updateTransaction(
         id: Long,
-        accountId: Long,
+        accountId: Long?,
         type: String,
         amount: Double,
         txnDate: String,
         categoryId: Long?,
         toAccountId: Long?,
+        creditCardId: Long? = null,
         note: String,
-    ) = transactionDao.update(id, accountId, toAccountId, categoryId, type, amount, note, txnDate)
+    ) = transactionDao.update(id, accountId, toAccountId, categoryId, creditCardId, type, amount, note, txnDate)
 
     suspend fun deleteTransaction(id: Long) = transactionDao.delete(id)
 
@@ -111,12 +124,14 @@ class MoneyRepository(private val db: AppDatabase) {
             accounts = accountDao.getAll(),
             categories = categoryDao.getAll(),
             transactions = transactionDao.getAll(),
+            emergencyFunds = emergencyFundDao.getAll(),
         )
     }
 
     suspend fun restoreBackupJson(jsonString: String) {
         val backup = com.moneymanagement.app.data.backup.JsonBackupHelper.parseFromJson(jsonString)
         // Clear all existing data
+        emergencyFundDao.deleteAll()
         transactionDao.deleteAll()
         categoryDao.deleteAll()
         accountDao.deleteAll()
@@ -125,6 +140,9 @@ class MoneyRepository(private val db: AppDatabase) {
         accountDao.insertAll(backup.accounts)
         categoryDao.insertAll(backup.categories)
         transactionDao.insertAll(backup.transactions)
+        if (backup.emergencyFunds.isNotEmpty()) {
+            emergencyFundDao.insertAll(backup.emergencyFunds)
+        }
     }
 
     suspend fun importTransactionsCsv(csvContent: String): Int {
@@ -307,13 +325,14 @@ class MoneyRepository(private val db: AppDatabase) {
 
     suspend fun approveSms(
         smsId: Long,
-        accountId: Long,
+        accountId: Long?,
         categoryId: Long?,
         toAccountId: Long?,
         type: String,
         amount: Double,
         txnDate: String,
         note: String,
+        creditCardId: Long? = null,
     ): Long {
         val txnId = addTransaction(
             accountId = accountId,
@@ -322,6 +341,7 @@ class MoneyRepository(private val db: AppDatabase) {
             txnDate = txnDate,
             categoryId = categoryId,
             toAccountId = toAccountId,
+            creditCardId = creditCardId,
             note = note,
         )
         smsInboxDao.updateStatus(smsId, "APPROVED")
@@ -428,7 +448,92 @@ class MoneyRepository(private val db: AppDatabase) {
 
     suspend fun findCreditCardByLastFour(last4: String): CreditCard? =
         creditCardDao.findByLastFour(last4)
+
+    // --- Emergency Fund Allocations ---
+    suspend fun addEmergencyFundAllocation(
+        name: String,
+        institution: String,
+        storageType: String,
+        amount: Double,
+        returnRate: Double? = null,
+        notes: String? = null,
+        linkedAccountId: Long? = null,
+    ): Long = emergencyFundDao.insert(
+        EmergencyFundAllocation(
+            name = name.trim(),
+            institution = institution.trim(),
+            storageType = storageType,
+            amount = amount,
+            returnRate = returnRate,
+            notes = notes?.trim()?.ifBlank { null },
+            linkedAccountId = linkedAccountId,
+            createdAt = nowIso(),
+            updatedAt = nowIso(),
+        )
+    )
+
+    suspend fun updateEmergencyFundAllocation(
+        id: Long,
+        name: String,
+        institution: String,
+        storageType: String,
+        amount: Double,
+        returnRate: Double?,
+        notes: String?,
+        linkedAccountId: Long?,
+    ) = emergencyFundDao.update(
+        id = id,
+        name = name.trim(),
+        institution = institution.trim(),
+        storageType = storageType,
+        amount = amount,
+        returnRate = returnRate,
+        notes = notes?.trim()?.ifBlank { null },
+        linkedAccountId = linkedAccountId,
+        updatedAt = nowIso(),
+    )
+
+    suspend fun updateEmergencyFundAmount(id: Long, amount: Double) =
+        emergencyFundDao.updateAmount(id, amount, nowIso())
+
+    suspend fun adjustEmergencyFundAmount(id: Long, delta: Double) =
+        emergencyFundDao.addToAmount(id, delta, nowIso())
+
+    suspend fun deleteEmergencyFundAllocation(id: Long) =
+        emergencyFundDao.delete(id)
+
+    suspend fun getAllEmergencyFunds(): List<EmergencyFundAllocation> =
+        emergencyFundDao.getAll()
+
+    suspend fun seedStarterEmergencyFundsIfEmpty() {
+        if (emergencyFundDao.count() == 0) {
+            addEmergencyFundAllocation(
+                name = "High-Interest Emergency Savings",
+                institution = "Primary Bank",
+                storageType = "bank_savings",
+                amount = 50000.0,
+                returnRate = 4.0,
+                notes = "Instant ATM/UPI access for immediate emergencies",
+            )
+            addEmergencyFundAllocation(
+                name = "Overnight / Liquid Mutual Fund",
+                institution = "Liquid Asset Fund",
+                storageType = "liquid_fund",
+                amount = 75000.0,
+                returnRate = 6.8,
+                notes = "T+1 redemption up to ₹50,000 instant withdraw",
+            )
+            addEmergencyFundAllocation(
+                name = "Emergency Cash on Hand",
+                institution = "Physical Cash",
+                storageType = "cash",
+                amount = 15000.0,
+                notes = "Home safe for network/banking outages",
+            )
+        }
+    }
 }
+
 
 
 fun computeNextDueDate(currentDue: String, frequency: String): String {

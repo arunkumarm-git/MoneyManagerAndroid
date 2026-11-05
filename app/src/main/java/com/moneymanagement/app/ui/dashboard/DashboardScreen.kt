@@ -36,7 +36,9 @@ import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Savings
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Sms
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Visibility
@@ -113,6 +115,9 @@ fun DashboardScreen(
     onSeeAllTransactions: () -> Unit = {},
     onNavigateToSms: () -> Unit = {},
     onNavigateToCards: () -> Unit = {},
+    onNavigateToCategories: () -> Unit = {},
+    onNavigateToEmergencyFund: () -> Unit = {},
+    onCheckForUpdates: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -185,15 +190,39 @@ fun DashboardScreen(
         topBar = {
             LargeTopAppBar(
                 title = {
-                    Column {
-                        Text(
-                            "Overview",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(12.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF10B981)),
                         )
+                        Column {
+                            Text(
+                                "Aura",
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.ExtraBold,
+                                letterSpacing = (-0.5).sp,
+                            )
+                            Text(
+                                "Wealth & Safety Net",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 },
                 actions = {
+                    IconButton(onClick = soundClick(onNavigateToEmergencyFund)) {
+                        Icon(
+                            Icons.Filled.Shield,
+                            contentDescription = "Emergency Safety Net",
+                            tint = Color(0xFF06B6D4),
+                        )
+                    }
                     IconButton(onClick = soundClick(onNavigateToSms)) {
                         BadgedBox(
                             badge = {
@@ -241,6 +270,16 @@ fun DashboardScreen(
                     isDeficit = state.isMonthDeficit,
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
+            }
+
+            state.emergencyAnalysis?.let { ef ->
+                item {
+                    EmergencyFundDashboardCard(
+                        analysis = ef,
+                        onClick = soundClick(onNavigateToEmergencyFund),
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
+                }
             }
 
             if (upcomingBills.isNotEmpty()) {
@@ -323,11 +362,12 @@ fun DashboardScreen(
         TransactionDialog(
             accounts = state.accounts,
             categories = state.categories,
+            creditCards = state.creditCards,
             initial = null,
             initialType = presetType,
             onDismiss = { pendingType = null },
-            onSave = { accountId, type, amount, txnDate, categoryId, toAccountId, note ->
-                viewModel.addTransaction(accountId, type, amount, txnDate, categoryId, toAccountId, note)
+            onSave = { accountId, type, amount, txnDate, categoryId, toAccountId, creditCardId, note ->
+                viewModel.addTransaction(accountId, type, amount, txnDate, categoryId, toAccountId, creditCardId, note)
             },
         )
     }
@@ -336,6 +376,8 @@ fun DashboardScreen(
         SettingsSheet(
             repository = repository,
             onDismiss = { showSettings = false },
+            onNavigateToCategories = onNavigateToCategories,
+            onCheckForUpdates = onCheckForUpdates,
         )
     }
 }
@@ -437,7 +479,7 @@ private fun SummaryCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 MoneyPill(
-                    icon = Icons.Filled.ArrowDownward,
+                    icon = Icons.Filled.ArrowUpward,
                     label = "Income",
                     amount = income,
                     currency = currencySymbol,
@@ -446,7 +488,7 @@ private fun SummaryCard(
                     modifier = Modifier.weight(1f),
                 )
                 MoneyPill(
-                    icon = Icons.Filled.ArrowUpward,
+                    icon = Icons.Filled.ArrowDownward,
                     label = "Expense",
                     amount = expense,
                     currency = currencySymbol,
@@ -497,6 +539,166 @@ private fun MoneyPill(
 }
 
 // ─────────────────────────────────────────────────────────
+// Emergency Fund Dashboard Card
+// ─────────────────────────────────────────────────────────
+
+@Composable
+private fun EmergencyFundDashboardCard(
+    analysis: com.moneymanagement.app.data.EmergencyFundAnalysis,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val privacyMode by AppSettings.privacyModeEnabled.collectAsState()
+    val currencySymbol by AppSettings.currencySymbol.collectAsState()
+
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFF06B6D4).copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(text = "🛡️", fontSize = 18.sp)
+                    }
+
+                    Column {
+                        Text(
+                            text = "Emergency Safety Net",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            text = "${String.format("%.1f", analysis.coverageMonths)} Months Living Expenses",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color(android.graphics.Color.parseColor(analysis.healthStatus.colorHex)).copy(alpha = 0.15f),
+                ) {
+                    Text(
+                        text = analysis.healthStatus.label,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(android.graphics.Color.parseColor(analysis.healthStatus.colorHex)),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    )
+                }
+            }
+
+            // Amount row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                Text(
+                    text = if (privacyMode) "$currencySymbol ••••••" else "$currencySymbol ${formatMoney(analysis.totalSaved, 0)}",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = "Goal: ${if (privacyMode) "••••••" else "$currencySymbol ${formatMoney(analysis.targetAmount, 0)}"}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            // Progress Bar
+            LinearProgressIndicator(
+                progress = { (analysis.progressPercent / 100f).coerceIn(0f, 1f) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)),
+                color = Color(0xFF06B6D4),
+                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                strokeCap = StrokeCap.Round,
+            )
+
+            // Storage breakdown badges preview
+            if (analysis.storageBreakdown.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    analysis.storageBreakdown.take(4).forEach { item ->
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(android.graphics.Color.parseColor(item.colorHex)).copy(alpha = 0.12f),
+                        ) {
+                            Text(
+                                text = "${item.icon} ${String.format("%.0f", item.percentage)}%",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(android.graphics.Color.parseColor(item.colorHex)),
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    Text(
+                        text = "View Breakdown →",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF06B6D4),
+                    )
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Track where your safety reserves are stored",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = "Manage →",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF06B6D4),
+                    )
+                }
+            }
+        }
+    }
+}
+
+
+// ─────────────────────────────────────────────────────────
 // Quick Actions Row
 // ─────────────────────────────────────────────────────────
 
@@ -511,8 +713,8 @@ private data class QuickAction(
 @Composable
 private fun QuickActionsRow(onSelect: (String) -> Unit, modifier: Modifier = Modifier) {
     val actions = listOf(
-        QuickAction("expense", "Expense", Icons.Filled.ArrowUpward, Color(0xFFFF5252), Color(0xFFFF867C)),
-        QuickAction("income", "Income", Icons.Filled.ArrowDownward, Color(0xFF00BFA5), Color(0xFF69F0AE)),
+        QuickAction("expense", "Expense", Icons.Filled.ArrowDownward, Color(0xFFFF5252), Color(0xFFFF867C)),
+        QuickAction("income", "Income", Icons.Filled.ArrowUpward, Color(0xFF00BFA5), Color(0xFF69F0AE)),
         QuickAction("transfer", "Transfer", Icons.Filled.SwapHoriz, Color(0xFF448AFF), Color(0xFF82B1FF)),
     )
     Row(

@@ -30,28 +30,28 @@ class CreditCardReminderWorker(
 
                 when {
                     daysUntil == 3L -> {
-                        NotificationHelper.showSmsNotification(
+                        NotificationHelper.showCreditCardNotification(
                             context,
                             "Credit Card Due in 3 Days",
                             "${card.cardName}: $currency ${card.totalDue} is due on $dueStr. Pay early to avoid late fees.",
                         )
                     }
                     daysUntil == 1L -> {
-                        NotificationHelper.showSmsNotification(
+                        NotificationHelper.showCreditCardNotification(
                             context,
                             "⚠️ Credit Card Due Tomorrow",
                             "Action Required: ${card.cardName} bill of $currency ${card.totalDue} is due tomorrow ($dueStr)!",
                         )
                     }
                     daysUntil == 0L -> {
-                        NotificationHelper.showSmsNotification(
+                        NotificationHelper.showCreditCardNotification(
                             context,
                             "🚨 Credit Card Bill Due Today!",
                             "Urgent: Pay ${card.cardName} bill of $currency ${card.totalDue} today to avoid interest charges.",
                         )
                     }
                     daysUntil < 0L -> {
-                        NotificationHelper.showSmsNotification(
+                        NotificationHelper.showCreditCardNotification(
                             context,
                             "⛔ Overdue Credit Card Bill",
                             "${card.cardName} bill of $currency ${card.totalDue} is overdue since $dueStr! Please pay immediately.",
@@ -62,7 +62,7 @@ class CreditCardReminderWorker(
                 // Check high credit utilization (> 70%)
                 if (card.creditLimit > 0 && (card.currentBalance / card.creditLimit) >= 0.70) {
                     val pct = ((card.currentBalance / card.creditLimit) * 100).toInt()
-                    NotificationHelper.showSmsNotification(
+                    NotificationHelper.showCreditCardNotification(
                         context,
                         "High Credit Card Utilization ($pct%)",
                         "${card.cardName} usage is at $pct% of limit ($currency ${card.creditLimit}). Keeping it under 30% helps your credit score.",

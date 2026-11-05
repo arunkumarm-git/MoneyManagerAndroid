@@ -22,8 +22,8 @@ android {
         applicationId = "com.moneymanagement.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 5
-        versionName = "1.2.1"
+        versionCode = 9
+        versionName = "1.2.5"
     }
 
     signingConfigs {
@@ -33,6 +33,8 @@ android {
                 storePassword = keystoreProperties.getProperty("storePassword")
                 keyAlias = keystoreProperties.getProperty("keyAlias")
                 keyPassword = keystoreProperties.getProperty("keyPassword")
+                enableV1Signing = true
+                enableV2Signing = true
             }
         }
     }
@@ -59,6 +61,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.14"
@@ -96,6 +99,8 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:2.9.1")
     implementation("androidx.biometric:biometric:1.2.0-alpha05")
     implementation("androidx.appcompat:appcompat:1.7.0")
+
+    implementation("com.google.android.play:app-update-ktx:2.1.0")
 
     testImplementation("junit:junit:4.13.2")
     debugImplementation("androidx.compose.ui:ui-tooling")

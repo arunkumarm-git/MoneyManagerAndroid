@@ -29,6 +29,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
@@ -108,6 +110,7 @@ fun SmsInboxScreen(
     val pendingList by viewModel.pendingSms.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
     val categories by viewModel.categories.collectAsState()
+    val creditCards by viewModel.creditCards.collectAsState()
     val isScanning by viewModel.isScanning.collectAsState()
     val scanDays by viewModel.selectedScanDays.collectAsState()
     val scanMessage by viewModel.scanMessage.collectAsState()
@@ -359,8 +362,8 @@ fun SmsInboxScreen(
                             sms = sms,
                             accounts = accounts,
                             categories = categories,
-                            onApprove = { accId, catId, note ->
-                                viewModel.approveSms(sms, accId, catId, null, note)
+                            onApprove = { accId, catId, type, note ->
+                                viewModel.approveSms(sms, accId, catId, null, note, null, type)
                                 Toast.makeText(context, "Transaction logged!", Toast.LENGTH_SHORT).show()
                             },
                             onDismiss = {
@@ -414,16 +417,19 @@ fun SmsInboxScreen(
         TransactionDialog(
             accounts = accounts,
             categories = categories,
+            creditCards = creditCards,
             initial = initialRow,
             initialType = sms.type,
             onDismiss = { editingSms = null },
-            onSave = { accountId, _, _, _, categoryId, toAccountId, note ->
+            onSave = { accountId, type, _, _, categoryId, toAccountId, creditCardId, note ->
                 viewModel.approveSms(
                     sms = sms,
                     accountId = accountId,
                     categoryId = categoryId,
                     toAccountId = toAccountId,
                     note = note,
+                    creditCardId = creditCardId,
+                    overrideType = type,
                 )
                 editingSms = null
                 Toast.makeText(context, "Transaction logged!", Toast.LENGTH_SHORT).show()
@@ -439,11 +445,12 @@ private fun SmsDraftCard(
     sms: SmsInbox,
     accounts: List<Account>,
     categories: List<Category>,
-    onApprove: (accountId: Long, categoryId: Long?, note: String?) -> Unit,
+    onApprove: (accountId: Long, categoryId: Long?, type: String, note: String?) -> Unit,
     onDismiss: () -> Unit,
     onEdit: () -> Unit,
 ) {
     val currencySymbol by AppSettings.currencySymbol.collectAsState()
+    var currentType by remember(sms.id) { mutableStateOf(sms.type) }
 
     var selectedAccountId by remember(sms.id, accounts) {
         val matched = accounts.find { acc ->
@@ -456,14 +463,14 @@ private fun SmsDraftCard(
         mutableStateOf(matched?.id)
     }
 
-    var selectedCategoryId by remember(sms.id, categories) {
+    var selectedCategoryId by remember(sms.id, categories, currentType) {
         val matched = categories.find { cat ->
             cat.name.equals(sms.suggestedCategory, ignoreCase = true) &&
-            cat.type.equals(sms.type, ignoreCase = true)
+            cat.type.equals(currentType, ignoreCase = true)
         } ?: categories.find { cat ->
             (cat.name.equals("Other", ignoreCase = true) || cat.name.equals("Others", ignoreCase = true) || cat.name.equals("Other Income", ignoreCase = true)) &&
-            cat.type.equals(sms.type, ignoreCase = true)
-        } ?: categories.firstOrNull { it.type == sms.type }
+            cat.type.equals(currentType, ignoreCase = true)
+        } ?: categories.firstOrNull { it.type == currentType }
         mutableStateOf(matched?.id)
     }
 
@@ -504,10 +511,38 @@ private fun SmsDraftCard(
                 }
 
                 Text(
-                    text = "${if (sms.type == "expense") "-" else "+"}$currencySymbol ${formatMoney(sms.amount, 2)}",
+                    text = "${if (currentType == "expense") "-" else "+"}$currencySymbol ${formatMoney(sms.amount, 2)}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (sms.type == "expense") ExpenseRed else IncomeGreen,
+                    color = if (currentType == "expense") ExpenseRed else IncomeGreen,
+                )
+            }
+
+            // Type Selector Chips: Expense vs Income
+            Row(
+                modifier = Modifier.padding(top = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                FilterChip(
+                    selected = currentType == "expense",
+                    onClick = soundClick {
+                        currentType = "expense"
+                    },
+                    label = { Text("Expense", style = MaterialTheme.typography.labelSmall) },
+                    leadingIcon = {
+                        Icon(Icons.Filled.ArrowDownward, contentDescription = null, modifier = Modifier.size(14.dp), tint = ExpenseRed)
+                    },
+                )
+                FilterChip(
+                    selected = currentType == "income",
+                    onClick = soundClick {
+                        currentType = "income"
+                    },
+                    label = { Text("Income", style = MaterialTheme.typography.labelSmall) },
+                    leadingIcon = {
+                        Icon(Icons.Filled.ArrowUpward, contentDescription = null, modifier = Modifier.size(14.dp), tint = IncomeGreen)
+                    },
                 )
             }
 
@@ -535,8 +570,8 @@ private fun SmsDraftCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Category Picker Chips
-            val filteredCategories = categories.filter { it.type == sms.type }
+            // Category Picker Chips (dynamically filtered by currentType)
+            val filteredCategories = categories.filter { it.type == currentType }
             if (filteredCategories.isNotEmpty()) {
                 Text("Category:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 FlowRow(
@@ -604,7 +639,7 @@ private fun SmsDraftCard(
                 Button(
                     onClick = soundClick {
                         val accId = selectedAccountId ?: accounts.firstOrNull()?.id ?: 1L
-                        onApprove(accId, selectedCategoryId, sms.merchantOrNote)
+                        onApprove(accId, selectedCategoryId, currentType, sms.merchantOrNote)
                     },
                     modifier = Modifier.weight(1.3f),
                 ) {

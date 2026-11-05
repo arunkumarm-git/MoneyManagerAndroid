@@ -1,20 +1,29 @@
-# 💰 Money Manager (Android)
+# 🛡️ Aura Money (Android)
 
-A modern, offline-first personal finance and wealth management Android application built with **Jetpack Compose**, **Material 3**, and **Room Database**.
+A modern, offline-first personal wealth and emergency safety net management Android application built with **Jetpack Compose**, **Material 3**, and **Room Database**.
 
 ---
 
 ## ✨ Features
 
+### 🛡️ Emergency Safety Net & Multi-Storage Tracking
+* **Multi-Location Reserves**: Track exactly where your emergency safety net is stored (High-Yield Bank Savings, Liquid Mutual Funds, Fixed Deposits, Physical Cash, etc.).
+* **Living Expense Runway Calculator**: Dynamically calculates how many months of living expenses are protected based on your actual spending habits.
+* **Storage Breakdown**: Visual segmented distribution analysis showing the balance between immediate liquidity (cash/bank) and yield-generating reserves (liquid funds/FDs).
+* **The 3-Bucket Rule Guidance**: In-app financial guidance recommending optimal tiering: Tier 1 (1-2 mo instant cash), Tier 2 (2-3 mo liquid funds), Tier 3 (2-3 mo safe fixed deposits).
+* **Quick Adjustments & Target Setting**: One-tap quick deposit/withdrawal adjustments, plus flexible target runway setting (3, 6, 9, 12 months or custom fixed amounts).
+
 ### 📊 Financial Tracking & Overview
 * **Overview Dashboard**: Instant view of your total net worth, monthly income, monthly expenses, and budget progress.
+* **Emergency Fund Widget**: Hero card on the dashboard showing real-time runway coverage, funding percentage, and health status (Fully Secured, Strong Foundation, Building).
 * **Multi-Account Support**: Manage Cash, Bank Accounts, Wallets, and Credit Cards with balance tracking.
 * **Categories & Budgets**: Customizable income and expense categories with monthly spending limits and budget watch alerts.
 * **Swipe-to-Delete with Undo**: Delete transactions with a left swipe and restore them instantly with an interactive Undo snackbar.
 
 ### 🎯 Savings Goals & Milestones
-* **Goal Buckets**: Set targets for vacations, emergency funds, or gadgets.
+* **Goal Buckets**: Set targets for vacations, gadgets, education, or weddings.
 * **Progress Tracking**: Real-time percentage tracking, target completion dates, and quick deposit dialogs.
+* **Integrated Safety Net Hub**: Direct access banner to your Emergency Safety Net from within the goals view.
 
 ### 🔄 Subscriptions & Recurring Transactions
 * **Automated Payments**: Schedule recurring rent, salary, subscriptions (Netflix, Spotify), or utility bills across Daily, Weekly, Monthly, or Yearly frequencies.

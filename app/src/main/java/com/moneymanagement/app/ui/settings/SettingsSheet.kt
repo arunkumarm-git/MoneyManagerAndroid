@@ -3,7 +3,9 @@ package com.moneymanagement.app.ui.settings
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Description
@@ -71,15 +74,17 @@ import com.moneymanagement.app.ui.common.formatMoney
 import com.moneymanagement.app.ui.common.soundClick
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import com.moneymanagement.app.BuildConfig
+import androidx.compose.material.icons.filled.SystemUpdate
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-
 import kotlinx.coroutines.withContext
 
 @Composable
 fun SettingsSheet(
     repository: MoneyRepository,
     onDismiss: () -> Unit,
+    onNavigateToCategories: (() -> Unit)? = null,
+    onCheckForUpdates: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -498,6 +503,26 @@ fun SettingsSheet(
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
+            // --- Section: Manage ---
+            Text("Manage", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+
+            FilledTonalButton(
+                onClick = soundClick {
+                    onNavigateToCategories?.invoke()
+                    onDismiss()
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(
+                    Icons.Filled.Category,
+                    contentDescription = null,
+                    modifier = androidx.compose.ui.Modifier.padding(end = 8.dp),
+                )
+                Text("Manage Categories")
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
             // --- Section: Data Backup & Portability ---
             Text("Data & Backup", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
 
@@ -554,15 +579,52 @@ fun SettingsSheet(
                 }
             }
 
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+            // --- Section: App Info & Updates ---
+            Text("About & Updates", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .background(Color(0xFF10B981), androidx.compose.foundation.shape.CircleShape),
+                        )
+                        Text("Aura Money", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                    }
+                    Text(
+                        "Version ${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE}) · Offline First",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                OutlinedButton(
+                    onClick = soundClick { onCheckForUpdates() },
+                ) {
+                    Icon(Icons.Filled.SystemUpdate, contentDescription = null, modifier = Modifier.padding(end = 6.dp))
+                    Text("Check Update")
+                }
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
     }
 
     // Confirmation dialog before restoring backup
-    pendingRestoreJson?.let { jsonStr ->
+    pendingRestoreJson?.let { _ ->
         AlertDialog(
             onDismissRequest = { pendingRestoreJson = null },
             title = { Text("Restore Backup?") },
-            text = { Text("Restoring a backup will replace your current accounts, categories, and transactions with the backup file data. Do you want to continue?") },
+            text = { Text("Restoring a backup will replace your current accounts, categories, emergency funds, and transactions with the backup file data. Do you want to continue?") },
             confirmButton = {
                 TextButton(
                     onClick = {

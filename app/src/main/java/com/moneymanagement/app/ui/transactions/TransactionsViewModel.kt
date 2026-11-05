@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.moneymanagement.app.data.Account
 import com.moneymanagement.app.data.Category
+import com.moneymanagement.app.data.CreditCard
 import com.moneymanagement.app.data.MoneyRepository
 import com.moneymanagement.app.data.TransactionRow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,13 +14,15 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-val TRANSACTION_FILTERS = listOf("All", "Income", "Expense", "Transfer")
+// Transfer removed from user-facing filter list
+val TRANSACTION_FILTERS = listOf("All", "Income", "Expense")
 
 data class TransactionsUiState(
     val filter: String = "All",
     val transactions: List<TransactionRow> = emptyList(),
     val accounts: List<Account> = emptyList(),
     val categories: List<Category> = emptyList(),
+    val creditCards: List<CreditCard> = emptyList(),
 )
 
 class TransactionsViewModel(private val repository: MoneyRepository) : ViewModel() {
@@ -30,10 +33,13 @@ class TransactionsViewModel(private val repository: MoneyRepository) : ViewModel
         repository.transactions,
         repository.accounts,
         repository.categories,
-    ) { f, txns, accounts, categories ->
+        repository.creditCards,
+    ) { f, txns, accounts, categories, cards ->
         val typeFilter = if (f == "All") null else f.lowercase()
-        val filtered = if (typeFilter == null) txns else txns.filter { it.txn.type == typeFilter }
-        TransactionsUiState(f, filtered, accounts, categories)
+        // Hide legacy transfer transactions from the main list
+        val nonTransfer = txns.filter { it.txn.type != "transfer" }
+        val filtered = if (typeFilter == null) nonTransfer else nonTransfer.filter { it.txn.type == typeFilter }
+        TransactionsUiState(f, filtered, accounts, categories, cards)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TransactionsUiState())
 
     fun setFilter(name: String) {
@@ -41,31 +47,33 @@ class TransactionsViewModel(private val repository: MoneyRepository) : ViewModel
     }
 
     fun addTransaction(
-        accountId: Long,
+        accountId: Long?,
         type: String,
         amount: Double,
         txnDate: String,
         categoryId: Long?,
         toAccountId: Long?,
+        creditCardId: Long?,
         note: String,
     ) {
         viewModelScope.launch {
-            repository.addTransaction(accountId, type, amount, txnDate, categoryId, toAccountId, note)
+            repository.addTransaction(accountId, type, amount, txnDate, categoryId, toAccountId, creditCardId, note)
         }
     }
 
     fun updateTransaction(
         id: Long,
-        accountId: Long,
+        accountId: Long?,
         type: String,
         amount: Double,
         txnDate: String,
         categoryId: Long?,
         toAccountId: Long?,
+        creditCardId: Long?,
         note: String,
     ) {
         viewModelScope.launch {
-            repository.updateTransaction(id, accountId, type, amount, txnDate, categoryId, toAccountId, note)
+            repository.updateTransaction(id, accountId, type, amount, txnDate, categoryId, toAccountId, creditCardId, note)
         }
     }
 

@@ -2,6 +2,7 @@ package com.moneymanagement.app.data.backup
 
 import com.moneymanagement.app.data.Account
 import com.moneymanagement.app.data.Category
+import com.moneymanagement.app.data.EmergencyFundAllocation
 import com.moneymanagement.app.data.Transaction
 import org.json.JSONArray
 import org.json.JSONObject
@@ -12,6 +13,7 @@ data class DatabaseBackup(
     val accounts: List<Account>,
     val categories: List<Category>,
     val transactions: List<Transaction>,
+    val emergencyFunds: List<EmergencyFundAllocation> = emptyList(),
 )
 
 object JsonBackupHelper {
@@ -20,9 +22,10 @@ object JsonBackupHelper {
         accounts: List<Account>,
         categories: List<Category>,
         transactions: List<Transaction>,
+        emergencyFunds: List<EmergencyFundAllocation> = emptyList(),
     ): String {
         val root = JSONObject()
-        root.put("version", 1)
+        root.put("version", 2)
         root.put("exportedAt", java.time.LocalDateTime.now().toString())
 
         // Accounts
@@ -71,6 +74,24 @@ object JsonBackupHelper {
             txnArr.put(obj)
         }
         root.put("transactions", txnArr)
+
+        // Emergency Funds
+        val efArr = JSONArray()
+        for (ef in emergencyFunds) {
+            val obj = JSONObject()
+            obj.put("id", ef.id)
+            obj.put("name", ef.name)
+            obj.put("institution", ef.institution)
+            obj.put("storageType", ef.storageType)
+            obj.put("amount", ef.amount)
+            if (ef.returnRate != null) obj.put("returnRate", ef.returnRate) else obj.put("returnRate", JSONObject.NULL)
+            if (ef.notes != null) obj.put("notes", ef.notes) else obj.put("notes", JSONObject.NULL)
+            if (ef.linkedAccountId != null) obj.put("linkedAccountId", ef.linkedAccountId) else obj.put("linkedAccountId", JSONObject.NULL)
+            obj.put("createdAt", ef.createdAt)
+            obj.put("updatedAt", ef.updatedAt)
+            efArr.put(obj)
+        }
+        root.put("emergencyFunds", efArr)
 
         return root.toString(2)
     }
@@ -133,12 +154,36 @@ object JsonBackupHelper {
             )
         }
 
+        val efList = mutableListOf<EmergencyFundAllocation>()
+        val efArr = root.optJSONArray("emergencyFunds") ?: JSONArray()
+        for (i in 0 until efArr.length()) {
+            val obj = efArr.getJSONObject(i)
+            val returnRate = if (obj.isNull("returnRate")) null else obj.optDouble("returnRate")
+            val notes = if (obj.isNull("notes")) null else obj.optString("notes")
+            val linkedAccountId = if (obj.isNull("linkedAccountId")) null else obj.optLong("linkedAccountId")
+            efList.add(
+                EmergencyFundAllocation(
+                    id = obj.optLong("id", 0),
+                    name = obj.getString("name"),
+                    institution = obj.optString("institution", ""),
+                    storageType = obj.optString("storageType", "other"),
+                    amount = obj.optDouble("amount", 0.0),
+                    returnRate = returnRate,
+                    notes = notes,
+                    linkedAccountId = linkedAccountId,
+                    createdAt = obj.optString("createdAt", ""),
+                    updatedAt = obj.optString("updatedAt", ""),
+                )
+            )
+        }
+
         return DatabaseBackup(
             version = version,
             exportedAt = exportedAt,
             accounts = accList,
             categories = catList,
             transactions = txnList,
+            emergencyFunds = efList,
         )
     }
 }

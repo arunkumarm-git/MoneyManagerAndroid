@@ -1,7 +1,6 @@
 # R8 / ProGuard rules for Money Manager
 
 # Optimization settings
--repackageclasses
 -allowaccessmodification
 
 # Kotlin Coroutines
@@ -45,3 +44,7 @@
 
 # Biometrics
 -keep class androidx.biometric.** { *; }
+
+# Google Play In-App Updates
+-keep class com.google.android.play.core.appupdate.** { *; }
+-keep class com.google.android.play.core.install.** { *; }

@@ -4,6 +4,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,6 +37,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -109,6 +111,7 @@ private fun goalEmoji(name: String): String {
 fun SavingsGoalsScreen(
     repository: MoneyRepository,
     onBack: (() -> Unit)? = null,
+    onNavigateToEmergencyFund: (() -> Unit)? = null,
 ) {
     val goals by repository.savingsGoals.collectAsState(initial = emptyList())
     val currencySymbol by AppSettings.currencySymbol.collectAsState()
@@ -141,24 +144,27 @@ fun SavingsGoalsScreen(
             )
         },
     ) { innerPadding ->
-        if (goals.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize().padding(innerPadding),
-                contentAlignment = Alignment.Center,
-            ) {
-                EmptyState(
-                    icon = Icons.Filled.Savings,
-                    title = "No savings goals yet",
-                    subtitle = "Set target goals for vacations, emergency funds, or dreams!",
-                    modifier = Modifier.padding(16.dp),
-                )
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(innerPadding),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+        ) {
+            if (onNavigateToEmergencyFund != null) {
+                item {
+                    EmergencyFundCalloutBanner(onClick = soundClick { onNavigateToEmergencyFund() })
+                }
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(innerPadding),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
-            ) {
+
+            if (goals.isEmpty()) {
+                item {
+                    EmptyState(
+                        icon = Icons.Filled.Savings,
+                        title = "No savings goals yet",
+                        subtitle = "Set target goals for vacations, gadgets, or special dreams!",
+                        modifier = Modifier.padding(16.dp),
+                    )
+                }
+            } else {
                 items(goals, key = { it.id }) { goal ->
                     SavingsGoalCard(
                         goal = goal,
@@ -168,8 +174,8 @@ fun SavingsGoalsScreen(
                         onDelete = { deletingGoal = goal },
                     )
                 }
-                item { Spacer(modifier = Modifier.height(72.dp)) }
             }
+            item { Spacer(modifier = Modifier.height(72.dp)) }
         }
     }
 
@@ -593,3 +599,60 @@ private fun DepositSheetContent(
         Text("Cancel")
     }
 }
+
+@Composable
+private fun EmergencyFundCalloutBanner(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+        ),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFF06B6D4).copy(alpha = 0.18f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(text = "🛡️", fontSize = 22.sp)
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Emergency Safety Net",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = "Track multi-bucket liquid reserves (Bank, Liquid Funds, FDs, Cash)",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            FilledTonalButton(
+                onClick = onClick,
+                shape = RoundedCornerShape(10.dp),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+            ) {
+                Text("Manage", style = MaterialTheme.typography.labelMedium)
+            }
+        }
+    }
+}
+

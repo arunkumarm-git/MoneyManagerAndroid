@@ -18,6 +18,9 @@ object AppSettings {
     private const val KEY_PRIVACY_MODE = "privacy_mode"
     private const val KEY_SMS_TRACKING = "sms_tracking"
     private const val KEY_AUTO_APPROVE_SMS = "auto_approve_sms"
+    private const val KEY_EMERGENCY_TARGET_MONTHS = "emergency_target_months"
+    private const val KEY_EMERGENCY_CUSTOM_TARGET = "emergency_custom_target"
+    private const val KEY_EMERGENCY_EXPENSE_OVERRIDE = "emergency_expense_override"
 
     private lateinit var prefs: SharedPreferences
 
@@ -49,6 +52,16 @@ object AppSettings {
     private val _autoApproveSms = MutableStateFlow(false)
     val autoApproveSms: StateFlow<Boolean> = _autoApproveSms
 
+    // Emergency Fund Target Settings
+    private val _emergencyTargetMonths = MutableStateFlow(6)
+    val emergencyTargetMonths: StateFlow<Int> = _emergencyTargetMonths
+
+    private val _emergencyCustomTarget = MutableStateFlow(0.0)
+    val emergencyCustomTarget: StateFlow<Double> = _emergencyCustomTarget
+
+    private val _emergencyExpenseOverride = MutableStateFlow(0.0)
+    val emergencyExpenseOverride: StateFlow<Double> = _emergencyExpenseOverride
+
     val supportedCurrencies = listOf("₹", "$", "€", "£", "¥")
 
     fun init(context: Context) {
@@ -60,6 +73,9 @@ object AppSettings {
         _privacyModeEnabled.value = prefs.getBoolean(KEY_PRIVACY_MODE, false)
         _smsTrackingEnabled.value = prefs.getBoolean(KEY_SMS_TRACKING, false)
         _autoApproveSms.value = prefs.getBoolean(KEY_AUTO_APPROVE_SMS, false)
+        _emergencyTargetMonths.value = prefs.getInt(KEY_EMERGENCY_TARGET_MONTHS, 6)
+        _emergencyCustomTarget.value = prefs.getFloat(KEY_EMERGENCY_CUSTOM_TARGET, 0.0f).toDouble()
+        _emergencyExpenseOverride.value = prefs.getFloat(KEY_EMERGENCY_EXPENSE_OVERRIDE, 0.0f).toDouble()
     }
 
     fun setSoundEnabled(value: Boolean) {
@@ -95,6 +111,21 @@ object AppSettings {
     fun setAutoApproveSms(enabled: Boolean) {
         _autoApproveSms.value = enabled
         prefs.edit().putBoolean(KEY_AUTO_APPROVE_SMS, enabled).apply()
+    }
+
+    fun setEmergencyTargetMonths(months: Int) {
+        _emergencyTargetMonths.value = months
+        prefs.edit().putInt(KEY_EMERGENCY_TARGET_MONTHS, months).apply()
+    }
+
+    fun setEmergencyCustomTarget(target: Double) {
+        _emergencyCustomTarget.value = target
+        prefs.edit().putFloat(KEY_EMERGENCY_CUSTOM_TARGET, target.toFloat()).apply()
+    }
+
+    fun setEmergencyExpenseOverride(expense: Double) {
+        _emergencyExpenseOverride.value = expense
+        prefs.edit().putFloat(KEY_EMERGENCY_EXPENSE_OVERRIDE, expense.toFloat()).apply()
     }
 }
 

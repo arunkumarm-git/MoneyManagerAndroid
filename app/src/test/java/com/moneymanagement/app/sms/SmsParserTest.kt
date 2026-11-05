@@ -156,6 +156,44 @@ class SmsParserTest {
         val sms4 = SmsParser.parse("AD-HDFCBK", "₹ 500 debited from A/c XX1234 to Store")
         assertEquals(500.0, sms4.amount, 0.001)
     }
+
+    @Test
+    fun testHathwayPromotionalSmsIsIgnored() {
+        val body = "Dear Customer, Activate UPI AutoPay for Hathway A/C 1322080092 and receive Rs.25 cashback(one time). Register now: https://hway.in/HATHWY/25d6d7"
+        val result = SmsParser.parse("JD-HATHWY-P", body)
+
+        assertFalse("Hathway promotional AutoPay cashback offer must NOT be treated as a transaction", result.isFinancial)
+    }
+
+    @Test
+    fun testPromotionalRechargeOfferIsIgnored() {
+        val body = "Recharge with Rs 299 to get 1.5GB/day and receive Rs 50 cashback. Offer valid till tomorrow!"
+        val result = SmsParser.parse("AD-AIRTEL", body)
+
+        assertFalse("Promotional recharge and cashback offers must be ignored", result.isFinancial)
+    }
+
+    @Test
+    fun testUpiTxnCreditedIsIncome() {
+        val body = "UPI txn of INR 100,000.00 credited to your A/c XX1234 on 01-Aug-2026 ref 123456789"
+        val result = SmsParser.parse("VK-SBIINB", body)
+
+        assertTrue(result.isFinancial)
+        assertEquals(100000.0, result.amount, 0.001)
+        assertEquals("income", result.type)
+        assertEquals("XX1234", result.accountReference)
+    }
+
+    @Test
+    fun testInterAccountTransferToYourAccountIsIncome() {
+        val body = "INR 25,000.00 transferred to your A/c XX9999 from Rahul ref 987654"
+        val result = SmsParser.parse("AD-HDFCBK", body)
+
+        assertTrue(result.isFinancial)
+        assertEquals(25000.0, result.amount, 0.001)
+        assertEquals("income", result.type)
+        assertEquals("XX9999", result.accountReference)
+    }
 }
 
 

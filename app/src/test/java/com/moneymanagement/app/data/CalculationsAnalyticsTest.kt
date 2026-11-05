@@ -208,4 +208,107 @@ class CalculationsAnalyticsTest {
         assertEquals("2026-07-01", prevStart)
         assertEquals("2026-07-31", prevEnd)
     }
+
+    @Test
+    fun testCreditCardExpenseDoesNotDeductBankBalance() {
+        val bankAccount = Account(id = 1L, name = "HDFC Bank", type = "bank", initialBalance = 10000.0, createdAt = "2026-08-01T00:00:00Z")
+        val ccExpense = TransactionRow(
+            txn = Transaction(
+                id = 100,
+                accountId = null, // paid by credit card
+                toAccountId = null,
+                categoryId = 1, // Food
+                creditCardId = 5L,
+                type = "expense",
+                amount = 2500.0,
+                note = "Flight booking via CC",
+                txnDate = "2026-08-12",
+                createdAt = "2026-08-12T10:00:00Z",
+            ),
+            categoryName = "Food",
+            accountName = null,
+            toAccountName = null,
+            creditCardName = "HDFC Regalia",
+        )
+
+        // Bank balance should remain untouched
+        val bankBalance = Calculations.accountBalance(bankAccount, listOf(ccExpense))
+        assertEquals(10000.0, bankBalance, 0.001)
+
+        // But month expense summary should include it
+        val (income, expense) = Calculations.monthSummary(listOf(ccExpense), 2026, 8)
+        assertEquals(0.0, income, 0.001)
+        assertEquals(2500.0, expense, 0.001)
+
+        // Category breakdown should also reflect it
+        val breakdown = Calculations.categoryBreakdown(listOf(ccExpense), sampleCategories, 2026, 8, "expense")
+        val foodTotal = breakdown.find { it.categoryId == 1L }?.total ?: 0.0
+        assertEquals(2500.0, foodTotal, 0.001)
+    }
+
+    @Test
+    fun testEmergencyFundMetricsAndStorageDistribution() {
+        val sampleAllocations = listOf(
+            EmergencyFundAllocation(
+                id = 1L,
+                name = "HDFC High Interest Savings",
+                institution = "HDFC Bank",
+                storageType = "bank_savings",
+                amount = 60000.0,
+                returnRate = 4.5,
+                createdAt = "2026-08-01T00:00:00Z",
+                updatedAt = "2026-08-01T00:00:00Z",
+            ),
+            EmergencyFundAllocation(
+                id = 2L,
+                name = "Nippon Liquid Mutual Fund",
+                institution = "Nippon AMC",
+                storageType = "liquid_fund",
+                amount = 90000.0,
+                returnRate = 6.9,
+                createdAt = "2026-08-01T00:00:00Z",
+                updatedAt = "2026-08-01T00:00:00Z",
+            ),
+            EmergencyFundAllocation(
+                id = 3L,
+                name = "Emergency Cash in Home Safe",
+                institution = "Physical Cash",
+                storageType = "cash",
+                amount = 30000.0,
+                returnRate = null,
+                createdAt = "2026-08-01T00:00:00Z",
+                updatedAt = "2026-08-01T00:00:00Z",
+            ),
+        )
+
+        val analysis = Calculations.calculateEmergencyFundMetrics(
+            allocations = sampleAllocations,
+            txns = sampleTransactions,
+            targetMonths = 6,
+            customTarget = 0.0,
+            expenseOverride = 30000.0, // 30,000 per month
+        )
+
+        // Total saved: 60k + 90k + 30k = 180,000
+        assertEquals(180000.0, analysis.totalSaved, 0.001)
+
+        // Target: 6 months * 30,000 = 180,000
+        assertEquals(180000.0, analysis.targetAmount, 0.001)
+
+        // Coverage months: 180,000 / 30,000 = 6.0 months
+        assertEquals(6.0, analysis.coverageMonths, 0.001)
+
+        // 100% funded
+        assertEquals(100f, analysis.progressPercent, 0.01f)
+
+        // Health status should be SECURE
+        assertEquals(EmergencyHealthStatus.SECURE, analysis.healthStatus)
+
+        // Check storage breakdown
+        assertEquals(3, analysis.storageBreakdown.size)
+        val liquidFundGroup = analysis.storageBreakdown.find { it.type == "liquid_fund" }
+        assertNotNull(liquidFundGroup)
+        assertEquals(90000.0, liquidFundGroup!!.amount, 0.001)
+        assertEquals(50.0, liquidFundGroup.percentage, 0.001) // 90k / 180k = 50%
+    }
 }

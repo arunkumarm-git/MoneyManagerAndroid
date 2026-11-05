@@ -7,4 +7,5 @@ data class TransactionRow(
     val categoryName: String?,
     val accountName: String?,
     val toAccountName: String?,
+    val creditCardName: String? = null,
 )

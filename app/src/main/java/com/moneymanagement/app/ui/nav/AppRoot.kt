@@ -55,6 +55,7 @@ import com.moneymanagement.app.ui.reports.ReportsScreen
 import com.moneymanagement.app.ui.transactions.TransactionsScreen
 import com.moneymanagement.app.ui.cards.CreditCardsScreen
 import com.moneymanagement.app.ui.goals.SavingsGoalsScreen
+import com.moneymanagement.app.ui.emergency.EmergencyFundScreen
 import com.moneymanagement.app.ui.recurring.RecurringScreen
 import com.moneymanagement.app.ui.sms.SmsInboxScreen
 import androidx.compose.foundation.clickable
@@ -71,8 +72,20 @@ private val bottomNavItems = listOf(
 )
 
 @Composable
-fun AppRoot(repository: MoneyRepository) {
+fun AppRoot(
+    repository: MoneyRepository,
+    initialRoute: String? = null,
+    onCheckForUpdates: () -> Unit = {},
+) {
     val navController = rememberNavController()
+
+    androidx.compose.runtime.LaunchedEffect(initialRoute) {
+        if (!initialRoute.isNullOrBlank() && initialRoute != "dashboard") {
+            navController.navigate(initialRoute) {
+                launchSingleTop = true
+            }
+        }
+    }
 
     Scaffold(
         bottomBar = {
@@ -112,6 +125,13 @@ fun AppRoot(repository: MoneyRepository) {
                     onNavigateToCards = {
                         navController.navigate("cards")
                     },
+                    onNavigateToCategories = {
+                        navController.navigate("categories")
+                    },
+                    onNavigateToEmergencyFund = {
+                        navController.navigate("emergency_fund")
+                    },
+                    onCheckForUpdates = onCheckForUpdates,
                 )
             }
             composable("transactions") {
@@ -121,10 +141,26 @@ fun AppRoot(repository: MoneyRepository) {
                 )
             }
             composable("accounts") { AccountsScreen(repository) }
-            composable("categories") { CategoriesScreen(repository) }
-            composable("goals") { SavingsGoalsScreen(repository) }
+            composable("categories") {
+                CategoriesScreen(
+                    repository = repository,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable("goals") {
+                SavingsGoalsScreen(
+                    repository = repository,
+                    onNavigateToEmergencyFund = { navController.navigate("emergency_fund") },
+                )
+            }
             composable("recurring") { RecurringScreen(repository) }
             composable("reports") { ReportsScreen(repository) }
+            composable("emergency_fund") {
+                EmergencyFundScreen(
+                    repository = repository,
+                    onBack = { navController.popBackStack() },
+                )
+            }
             composable("sms_inbox") {
                 SmsInboxScreen(
                     repository = repository,

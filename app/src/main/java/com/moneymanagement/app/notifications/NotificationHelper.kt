@@ -17,8 +17,10 @@ import com.moneymanagement.app.R
 object NotificationHelper {
     const val CHANNEL_ID = "daily_reminders"
     const val SMS_CHANNEL_ID = "sms_transactions"
+    const val CREDIT_CARD_CHANNEL_ID = "credit_card_alerts"
     private const val NOTIFICATION_ID = 2001
     private const val SMS_NOTIFICATION_BASE_ID = 3000
+    private const val CC_NOTIFICATION_BASE_ID = 4000
 
     fun createChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -38,9 +40,18 @@ object NotificationHelper {
                 description = "Alerts for newly detected financial SMS messages"
             }
 
+            val cardChannel = NotificationChannel(
+                CREDIT_CARD_CHANNEL_ID,
+                "Credit Card Bill & Limit Alerts",
+                NotificationManager.IMPORTANCE_HIGH,
+            ).apply {
+                description = "Alerts for credit card payment due dates and high credit utilization"
+            }
+
             val manager = context.getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(reminderChannel)
             manager.createNotificationChannel(smsChannel)
+            manager.createNotificationChannel(cardChannel)
         }
     }
 
@@ -106,6 +117,41 @@ object NotificationHelper {
 
         NotificationManagerCompat.from(context).notify(
             SMS_NOTIFICATION_BASE_ID + (System.currentTimeMillis() % 1000).toInt(),
+            notification,
+        )
+    }
+
+    fun showCreditCardNotification(context: Context, title: String, message: String) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("navigate_to", "cards")
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            System.currentTimeMillis().toInt(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        val notification = NotificationCompat.Builder(context, CREDIT_CARD_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .build()
+
+        NotificationManagerCompat.from(context).notify(
+            CC_NOTIFICATION_BASE_ID + (System.currentTimeMillis() % 1000).toInt(),
             notification,
         )
     }

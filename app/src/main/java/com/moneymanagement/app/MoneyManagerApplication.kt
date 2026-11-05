@@ -23,8 +23,12 @@ class MoneyManagerApplication : Application() {
         val db = AppDatabase.getInstance(this)
         repository = MoneyRepository(db)
         applicationScope.launch {
-            repository.seedDefaultsIfNeeded()
-            repository.processDueRecurringTransactions()
+            try {
+                repository.seedDefaultsIfNeeded()
+                repository.processDueRecurringTransactions()
+            } catch (e: Exception) {
+                android.util.Log.e("MoneyManagerApp", "Startup initialization error", e)
+            }
         }
 
         NotificationHelper.createChannel(this)

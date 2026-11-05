@@ -218,6 +218,7 @@ fun TransactionsScreen(
                                                     txnDate = itemToDelete.txn.txnDate,
                                                     categoryId = itemToDelete.txn.categoryId,
                                                     toAccountId = itemToDelete.txn.toAccountId,
+                                                    creditCardId = itemToDelete.txn.creditCardId,
                                                     note = itemToDelete.txn.note ?: "",
                                                 )
                                             }
@@ -277,10 +278,11 @@ fun TransactionsScreen(
         TransactionDialog(
             accounts = state.accounts,
             categories = state.categories,
+            creditCards = state.creditCards,
             initial = null,
             onDismiss = { showAddDialog = false },
-            onSave = { accountId, type, amount, txnDate, categoryId, toAccountId, note ->
-                viewModel.addTransaction(accountId, type, amount, txnDate, categoryId, toAccountId, note)
+            onSave = { accountId, type, amount, txnDate, categoryId, toAccountId, creditCardId, note ->
+                viewModel.addTransaction(accountId, type, amount, txnDate, categoryId, toAccountId, creditCardId, note)
             },
         )
     }
@@ -288,10 +290,11 @@ fun TransactionsScreen(
         TransactionDialog(
             accounts = state.accounts,
             categories = state.categories,
+            creditCards = state.creditCards,
             initial = row,
             onDismiss = { editingTxn = null },
-            onSave = { accountId, type, amount, txnDate, categoryId, toAccountId, note ->
-                viewModel.updateTransaction(row.txn.id, accountId, type, amount, txnDate, categoryId, toAccountId, note)
+            onSave = { accountId, type, amount, txnDate, categoryId, toAccountId, creditCardId, note ->
+                viewModel.updateTransaction(row.txn.id, accountId, type, amount, txnDate, categoryId, toAccountId, creditCardId, note)
             },
         )
     }
@@ -308,10 +311,10 @@ fun TransactionsScreen(
 private fun TransactionCard(row: TransactionRow, onEdit: () -> Unit, onDelete: () -> Unit) {
     val txn = row.txn
     var menuOpen by remember { mutableStateOf(false) }
-    val subtitle = if (txn.type == "transfer") {
-        "${row.accountName} → ${row.toAccountName}"
-    } else {
-        "${row.accountName} · ${row.categoryName ?: "Uncategorized"}"
+    // Build subtitle: credit card name, or account · category
+    val subtitle = when {
+        row.creditCardName != null -> "${row.creditCardName} · ${row.categoryName ?: "Uncategorized"}"
+        else -> "${row.accountName ?: ""} · ${row.categoryName ?: "Uncategorized"}"
     }
     val accentColor = when (txn.type) {
         "income" -> IncomeGreen

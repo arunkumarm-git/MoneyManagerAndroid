@@ -118,11 +118,12 @@ object Calculations {
         var balance = account.initialBalance
         for (row in txns) {
             val t = row.txn
+            val absAmount = kotlin.math.abs(t.amount)
             when {
-                t.accountId == account.id && t.type == "income" -> balance += t.amount
-                t.accountId == account.id && t.type == "expense" -> balance -= t.amount
-                t.accountId == account.id && t.type == "transfer" -> balance -= t.amount
-                t.toAccountId == account.id && t.type == "transfer" -> balance += t.amount
+                t.accountId == account.id && t.type == "income" -> balance += absAmount
+                t.accountId == account.id && t.type == "expense" -> balance -= absAmount
+                t.accountId == account.id && t.type == "transfer" -> balance -= absAmount
+                t.toAccountId == account.id && t.type == "transfer" -> balance += absAmount
             }
         }
         return balance
@@ -203,13 +204,14 @@ object Calculations {
             if (date < startDate || date > endDate) continue
 
             count++
+            val absAmount = kotlin.math.abs(t.amount)
             when (t.type) {
-                "income" -> income += t.amount
+                "income" -> income += absAmount
                 "expense" -> {
-                    expense += t.amount
-                    if (t.amount > maxExpense) maxExpense = t.amount
+                    expense += absAmount
+                    if (absAmount > maxExpense) maxExpense = absAmount
                 }
-                "transfer" -> transfers += t.amount
+                "transfer" -> transfers += absAmount
             }
         }
 
@@ -244,9 +246,10 @@ object Calculations {
             val t = row.txn
             val date = if (t.txnDate.length >= 10) t.txnDate.substring(0, 10) else t.txnDate
             if (date < start || date > end) continue
+            val absAmount = kotlin.math.abs(t.amount)
             when (t.type) {
-                "income" -> income += t.amount
-                "expense" -> expense += t.amount
+                "income" -> income += absAmount
+                "expense" -> expense += absAmount
             }
         }
         return income to expense
@@ -271,7 +274,6 @@ object Calculations {
     fun calculateTrend(
         txns: List<TransactionRow>,
         preset: TimeRangePreset,
-        startDate: String,
         endDate: String,
         viewYear: Int,
         viewMonth: Int,
@@ -502,19 +504,23 @@ object Calculations {
             val dateStr = if (t.txnDate.length >= 10) t.txnDate.substring(0, 10) else t.txnDate
             if (dateStr < startDate || dateStr > endDate) continue
 
+            val accId = t.accountId
             when (t.type) {
                 "expense" -> {
-                    expTotals[t.accountId] = (expTotals[t.accountId] ?: 0.0) + t.amount
+                    if (accId != null) {
+                        expTotals[accId] = (expTotals[accId] ?: 0.0) + t.amount
+                    }
                     totalExp += t.amount
                 }
                 "income" -> {
-                    incTotals[t.accountId] = (incTotals[t.accountId] ?: 0.0) + t.amount
+                    if (accId != null) {
+                        incTotals[accId] = (incTotals[accId] ?: 0.0) + t.amount
+                    }
                 }
             }
         }
 
         if (totalExp <= 0.0) totalExp = 1.0
-        val accMap = accounts.associateBy { it.id }
 
         return accounts.map { acc ->
             val exp = expTotals[acc.id] ?: 0.0
@@ -726,5 +732,127 @@ object Calculations {
             else -> filtered.sortedWith(compareByDescending<TransactionRow> { it.txn.txnDate }.thenByDescending { it.txn.id })
         }
     }
+
+    // ─────────────────────────────────────────────────────────
+    // Emergency Fund Financial Health & Distribution Models
+    // ─────────────────────────────────────────────────────────
+    fun calculateEmergencyFundMetrics(
+        allocations: List<EmergencyFundAllocation>,
+        txns: List<TransactionRow>,
+        targetMonths: Int = 6,
+        customTarget: Double = 0.0,
+        expenseOverride: Double = 0.0,
+    ): EmergencyFundAnalysis {
+        val totalSaved = allocations.sumOf { it.amount }
+
+        // Compute monthly expenses
+        val monthlyExpense = if (expenseOverride > 0.0) {
+            expenseOverride
+        } else {
+            // Compute average monthly expenses over the last 3 completed or active months
+            val now = LocalDate.now()
+            val recentExpenses = (0..2).map { offset ->
+                val ym = YearMonth.from(now.minusMonths(offset.toLong()))
+                monthSummary(txns, ym.year, ym.monthValue).second
+            }.filter { it > 0.0 }
+
+            if (recentExpenses.isNotEmpty()) {
+                recentExpenses.average()
+            } else {
+                // If no transaction data exists, use 25000 as a sensible baseline
+                25000.0
+            }
+        }
+
+        val targetAmount = if (customTarget > 0.0) customTarget else (targetMonths * monthlyExpense)
+        val coverageMonths = if (monthlyExpense > 0.0) totalSaved / monthlyExpense else 0.0
+        val progressPercent = if (targetAmount > 0.0) ((totalSaved / targetAmount) * 100.0).toFloat().coerceIn(0f, 100f) else 0f
+
+        val healthStatus = when {
+            coverageMonths >= 6.0 || (targetAmount > 0.0 && totalSaved >= targetAmount) -> EmergencyHealthStatus.SECURE
+            coverageMonths >= 3.0 || (targetAmount > 0.0 && totalSaved >= 0.5 * targetAmount) -> EmergencyHealthStatus.STRONG
+            else -> EmergencyHealthStatus.BUILDING
+        }
+
+        // Storage distribution breakdown
+        val typeGroups = allocations.groupBy { it.storageType }
+        val breakdown = listOf(
+            StorageTypeMeta("bank_savings", "High-Yield Bank Savings", "🏦", "#3B82F6"),
+            StorageTypeMeta("liquid_fund", "Liquid Mutual Funds", "💧", "#06B6D4"),
+            StorageTypeMeta("fixed_deposit", "Fixed Deposits / HYSA", "📜", "#8B5CF6"),
+            StorageTypeMeta("cash", "Cash on Hand", "💵", "#10B981"),
+            StorageTypeMeta("other", "Other Liquid Reserves", "🪙", "#F59E0B"),
+        ).mapNotNull { meta ->
+            val list = typeGroups[meta.type] ?: emptyList()
+            val sum = list.sumOf { it.amount }
+            if (sum > 0.0 || list.isNotEmpty()) {
+                val pct = if (totalSaved > 0.0) (sum / totalSaved) * 100.0 else 0.0
+                StorageTypeBreakdown(
+                    type = meta.type,
+                    displayName = meta.displayName,
+                    icon = meta.icon,
+                    amount = sum,
+                    count = list.size,
+                    percentage = pct,
+                    colorHex = meta.colorHex,
+                )
+            } else null
+        }
+
+        // 3-Bucket Rule recommendations
+        val instantCashAmount = allocations.filter { it.storageType == "cash" || it.storageType == "bank_savings" }.sumOf { it.amount }
+        val instantCashMonths = if (monthlyExpense > 0.0) instantCashAmount / monthlyExpense else 0.0
+
+        val recommendation = when {
+            totalSaved == 0.0 -> "Start by storing 1 month of living expenses in an instant-access bank account or cash."
+            instantCashMonths < 1.0 -> "Keep at least 1-2 months in instant savings or cash for immediate liquidity without penalty."
+            coverageMonths < 3.0 -> "You're building momentum! Aim for 3 months to protect against unexpected medical or home costs."
+            coverageMonths < 6.0 -> "Strong safety net! Consider moving surplus into liquid mutual funds or fixed deposits for yield."
+            else -> "Elite protection! Your 6+ months safety net gives you complete financial resilience."
+        }
+
+        return EmergencyFundAnalysis(
+            totalSaved = totalSaved,
+            targetAmount = targetAmount,
+            targetMonths = targetMonths,
+            monthlyExpense = monthlyExpense,
+            coverageMonths = coverageMonths,
+            progressPercent = progressPercent,
+            healthStatus = healthStatus,
+            storageBreakdown = breakdown,
+            recommendation = recommendation,
+        )
+    }
 }
+
+data class StorageTypeMeta(val type: String, val displayName: String, val icon: String, val colorHex: String)
+
+data class StorageTypeBreakdown(
+    val type: String,
+    val displayName: String,
+    val icon: String,
+    val amount: Double,
+    val count: Int,
+    val percentage: Double,
+    val colorHex: String,
+)
+
+enum class EmergencyHealthStatus(val label: String, val description: String, val colorHex: String, val emoji: String) {
+    SECURE("Fully Secured", "6+ months of living expenses safely reserved", "#10B981", "🛡️"),
+    STRONG("Strong Foundation", "3 to 6 months of expenses covered", "#06B6D4", "⚡"),
+    BUILDING("Building Safety Net", "Under 3 months covered — regular deposits recommended", "#F59E0B", "🌱"),
+}
+
+data class EmergencyFundAnalysis(
+    val totalSaved: Double,
+    val targetAmount: Double,
+    val targetMonths: Int,
+    val monthlyExpense: Double,
+    val coverageMonths: Double,
+    val progressPercent: Float,
+    val healthStatus: EmergencyHealthStatus,
+    val storageBreakdown: List<StorageTypeBreakdown>,
+    val recommendation: String,
+)
+
 

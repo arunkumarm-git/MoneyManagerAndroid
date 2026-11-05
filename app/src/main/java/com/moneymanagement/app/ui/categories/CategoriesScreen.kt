@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Delete
@@ -52,7 +53,10 @@ import com.moneymanagement.app.ui.theme.ExpenseRed
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CategoriesScreen(repository: MoneyRepository) {
+fun CategoriesScreen(
+    repository: MoneyRepository,
+    onBack: (() -> Unit)? = null,
+) {
     val viewModel: CategoriesViewModel = viewModel(factory = GenericViewModelFactory { CategoriesViewModel(repository) })
     val state by viewModel.uiState.collectAsState()
 
@@ -62,7 +66,18 @@ fun CategoriesScreen(repository: MoneyRepository) {
     var tabIndex by remember { mutableStateOf(0) }
 
     Scaffold(
-        topBar = { CenterAlignedTopAppBar(title = { Text("Categories") }) },
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("Categories") },
+                navigationIcon = {
+                    if (onBack != null) {
+                        IconButton(onClick = soundClick(onBack)) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
+                    }
+                },
+            )
+        },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = soundClick { showAddDialog = true },
